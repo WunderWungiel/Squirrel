@@ -1,0 +1,67 @@
+/*
+ ============================================================================
+ Name		: Squirrel.hrh
+ Author	  : JigokuMaster
+ Copyright   : Your copyright notice
+ Description : This file contains declarations for constants of Squirrel.
+ The file can be included in C++ or resource file.
+ ============================================================================
+ */
+#ifndef __SQUIRREL_HRH__
+#define __SQUIRREL_HRH__
+
+#define _UID3 0xcdbe9aa7
+
+
+// Squirrel view ids.
+enum TSquirrelViewIds
+{
+    EMainView = 1,
+    EDecoderView,
+    EHistoryView,
+    EScannerView,
+    EGeneratorView,
+    EAboutView
+};
+
+// Squirrel enumerate command codes
+enum TSquirrelCmds
+{
+	ECmdDeleteHistory = 0x6001, // start value must not be 0
+	ECmdCleanHistory,
+	ECmdOpenImage,
+	ECmdGenerateImage,
+	ECmdSaveImage,
+	ECmdSendImage,
+	ECmdDecodeImageFile,
+	ECmdDecodeImageData,
+	ECmdDecodeBitmap,
+	ECmdOpenQRCDataMenu,
+	ECmdOpenGeneratorSettings,
+	ECmdExport,
+	ECmdSelectMemo,
+	ECmdSelectContact,
+	ECmdSelectCalendar,
+	ECmdSelectBookmark,
+	ECmdSelectIP,
+	ECmdSelectIMEI
+
+
+};
+
+// Dialog item Ids
+enum TSquirrelDialogIds
+{
+
+    // GeneratorSettings
+    EGeneratorSettingsItem1 = 1,
+    EGeneratorSettingsItem2,
+    EGeneratorSettingsItem3,
+    EGeneratorSettingsItem4,
+    EGeneratorSettingsItem5,
+    EGeneratorSettingsItem6,
+    EGeneratorSettingsItem7,
+    EGeneratorSettingsItem8
+};
+
+#endif // __SQUIRREL_HRH__

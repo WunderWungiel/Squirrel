@@ -1,0 +1,46 @@
+/*
+============================================================================
+ Name		: bld.inf
+ Author	  : JigokuMaster
+ Copyright   : Your copyright notice
+ Description : This file provides the information required for building the
+				whole of a Squirrel.
+============================================================================
+*/
+
+PRJ_PLATFORMS
+WINSCW ARMV5 GCCE
+
+
+#ifdef SBSV2
+
+PRJ_EXTENSIONS
+	
+	START EXTENSION s60/mifconv
+	OPTION TARGETFILE squirrel_0xebfcc31a.mif
+	OPTION HEADERFILE squirrel_0xebfcc31a.mbg
+	OPTION SOURCEDIR ../gfx
+	OPTION SOURCES -c32 qgn_menu_Squirrel
+	END
+	
+	// help compiler is not always available; see similar comment in *.pkg file
+	START EXTENSION techview/bldhelp
+	OPTION HELPPROJECTFILE Squirrel.cshlp
+	OPTION HELPTOOLTARGETNAME squirrel_0xebfcc31a.hlp
+	END
+
+#else
+
+PRJ_MMPFILES
+
+	gnumakefile Icons_scalable_dc.mk
+	gnumakefile icons.mk
+
+	// help compiler is not always available; see similar comment in *.pkg file
+//	gnumakefile ../help/build_help.mk
+
+#endif
+
+PRJ_MMPFILES
+
+Squirrel.mmp

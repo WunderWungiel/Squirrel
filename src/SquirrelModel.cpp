@@ -1,0 +1,1109 @@
+#include <utf.h> // CnvUtfConverter
+//#include <f32file.h> // TParsePtrC
+#include <s32strm.h>
+#include <bautils.h>
+#include <pathinfo.h>
+#include <caknmemoryselectiondialog.h>
+#include <apparc.h> // CApaApplication
+#include <apgcli.h> // RApaLsSession
+#include <aknlistquerydialog.h>
+#include <npdapi.h>
+#include <cmessagedata.h>
+#include <sendui.h>
+#include <baclipb.h>
+#include <apmstd.h>
+#include <icl/imageprocessor.h>
+#include <textresolver.h>
+#include <wchar.h>
+
+#include "SquirrelAppUi.h"
+#include "SquirrelModel.h"
+#include "Squirrel.hrh"
+#include "Squirrel.rsg"
+#include "HistoryStore.h"
+
+
+
+_LIT(KGeneratorSettingsFile, "GeneratorSettings.dat");
+
+_LIT(KDefaultImageFileName, "Squirrel");
+
+#define RGB2BGR(rgb) ((rgb & 0xFF) << 16) | (rgb & 0xFF00) | (rgb >> 16)
+
+
+// utility functions 
+
+void GetPrivateFilePathL(RFs& aRfs, TFileName &aFilePath, const TDesC &aFileName)
+{
+
+    User::LeaveIfError(aRfs.PrivatePath(aFilePath));
+
+    // insert the "drive:" to the private path
+    /*TParsePtrC parse((CEikonEnv::Static()->EikAppUi()->Application())->AppFullName());*/
+    aFilePath.Insert(0, RProcess().FileName().Left(2));
+    aFilePath.Append(aFileName);
+}
+
+static void CopyTextToClipboardL(const TDesC &aText)
+{
+
+    CClipboard* cb = CClipboard::NewForWritingLC( CCoeEnv::Static()->FsSession());
+    CPlainText* plainText = CPlainText::NewL();
+    CleanupStack::PushL(plainText);
+    plainText->InsertL(0, aText);	    
+    plainText->CopyToStoreL(cb->Store(), cb->StreamDictionary(), 0, plainText->DocumentLength());
+    cb->CommitL();
+    CleanupStack::PopAndDestroy(plainText);
+    CleanupStack::PopAndDestroy(cb);
+}
+
+static void ViewTextWithNotePadL(const TDesC &aText, const TBool &aSaveContent=EFalse)
+{
+    TInt ret;
+    HBufC* content;
+    
+    content = CNotepadApi::ExecTextEditorL(ret, aText);
+    if( (ret == KErrNone) && aSaveContent)
+    {
+	CNotepadApi::AddContentL(content->Des());
+    }
+    if(content != NULL) delete content;
+	
+}
+
+
+/*static*/ void ShowErrorL(const TInt aErrorCode)
+{
+
+    TBuf<256> msg;
+    CTextResolver* textResolver;
+    textResolver = CTextResolver::NewLC();
+
+    msg.Append(textResolver->ResolveErrorString(aErrorCode));
+    CleanupStack::PopAndDestroy();//textResolver  
+    ErrorNoteL(&msg);
+
+}
+
+
+void SendFileL(const TDesC &aFilePath)
+{
+
+    CSendUi* sendUi = CSendUi::NewL();
+    CleanupStack::PushL(sendUi);
+        
+    CMessageData* messageData = CMessageData::NewL();
+    CleanupStack::PushL(messageData);
+
+    messageData->AppendAttachmentL(aFilePath);
+
+    sendUi->ShowQueryAndSendL(messageData, TSendingCapabilities(0, 0, TSendingCapabilities::ESupportsAttachments));
+
+    CleanupStack::PopAndDestroy(2); // sendUi, messageData
+}
+
+
+
+// Implementation of CGeneratorSettings
+
+CGeneratorSettings::CGeneratorSettings(QRCEncoder* aQRCEncoder)
+{
+   iFileStore = NULL;
+   iQRCEncoder = aQRCEncoder;
+}
+
+CGeneratorSettings::~CGeneratorSettings()
+{
+    if (iFileStore) delete iFileStore;
+}
+
+CGeneratorSettings* CGeneratorSettings::NewL(QRCEncoder* aQRCEncoder)
+{
+    CGeneratorSettings* self = new(ELeave) CGeneratorSettings(aQRCEncoder);
+    CleanupStack::PushL(self);
+    self->ConstructL();
+    CleanupStack::Pop(self);
+    return self;    
+}
+
+void CGeneratorSettings::ConstructL()
+{
+    TInt err(KErrNone);
+    TBool r(ETrue);
+    TRAP(err, r = RestoreL());
+    if (!r || err != KErrNone)
+    {
+	iScale = 8; // N pixels per modules 
+	iBorder = 4; // 4 modules 
+	iImageFormatIndex = 0; // png
+	iColors[0] = 0xFFFFFF;//KRgbWhite.Value();
+	iColors[1] = 0x000000;//KRgbBlack.Value();
+	CreateStoreL();
+	StoreL(ETrue);
+    }
+}
+
+TBool CGeneratorSettings::RestoreL()
+{
+    RFs& rfs = CCoeEnv::Static()->FsSession();
+    TFileName fp;
+
+    GetPrivateFilePathL(rfs, fp, KGeneratorSettingsFile);
+
+    if (!BaflUtils::FileExists(rfs,  fp)) return EFalse;
+
+    iFileStore = CPermanentFileStore::OpenL(rfs, fp, EFileRead|EFileWrite);
+    iFileStore->SetTypeL(iFileStore->Layout());
+
+    RStoreReadStream instream;
+    instream.OpenLC(*iFileStore, iFileStore->Root());
+    TInt minVersion = instream.ReadInt32L();
+    TInt maxVersion = instream.ReadInt32L();
+    TInt ecl = instream.ReadInt32L();
+    iQRCEncoder->SetParams(ecl, minVersion, maxVersion);
+
+    iScale = instream.ReadInt32L();
+    iBorder = instream.ReadInt32L();
+    iImageFormatIndex = instream.ReadInt32L();
+    iColors[0] = instream.ReadUint32L();
+    iColors[1] = instream.ReadUint32L();
+
+    CleanupStack::PopAndDestroy(); // instream
+    return ETrue;
+}
+
+
+void CGeneratorSettings::CreateStoreL()
+{
+    RFs& rfs = CCoeEnv::Static()->FsSession();
+    TFileName fp;
+
+    GetPrivateFilePathL(rfs, fp, KGeneratorSettingsFile);
+    iFileStore = CPermanentFileStore::ReplaceL(rfs, fp, EFileRead|EFileWrite);   
+    iFileStore->SetTypeL(iFileStore->Layout());
+}
+
+void CGeneratorSettings::StoreL(TBool aCreate)
+{
+
+    RStoreWriteStream outstream;
+    if (aCreate){
+    
+	TStreamId id = outstream.CreateLC(*iFileStore);
+	iFileStore->SetRootL(id);
+
+    }
+    else {
+	outstream.OpenLC(*iFileStore, iFileStore->Root());
+    }
+
+       
+    outstream.WriteInt32L(iQRCEncoder->MinVersion());
+    outstream.WriteInt32L(iQRCEncoder->MaxVersion());
+    outstream.WriteInt32L(iQRCEncoder->Ecl());
+    outstream.WriteInt32L(iScale); 
+    outstream.WriteInt32L(iBorder);
+    outstream.WriteInt32L(iImageFormatIndex); 
+    outstream.WriteUint32L(iColors[0]);
+    outstream.WriteUint32L(iColors[1]);
+
+    outstream.CommitL();
+    iFileStore->CommitL();
+    CleanupStack::PopAndDestroy(); // outstream
+}
+
+// id of output image 
+TUid CGeneratorSettings::ImageFormat(TFileName &aFileName) const 
+{
+    aFileName.Append(KDefaultImageFileName);
+    if (iImageFormatIndex == 1)
+    {   
+	aFileName.Append(_L(".jpg"));
+	return KImageTypeJPGUid;
+    }
+    if (iImageFormatIndex == 2)
+    {
+	aFileName.Append(_L(".bmp"));
+	return KImageTypeBMPUid;
+    }
+    aFileName.Append(_L(".png"));
+    return KImageTypePNGUid; // 0 default
+}
+
+
+// Implementation of CQRCEncoderModel
+
+CQRCEncoderModel::CQRCEncoderModel(TSize aSize):CActive(EPriorityStandard)
+{
+    iUtf8Text = NULL; 
+    iCachedBitmapDrawer = NULL;
+    iBitmapDrawer = CBitmapDrawer::NewL(aSize);
+    iImageEncoder = NULL;
+    iSettings = NULL;
+    iWaitDialog = NULL;
+    iInfoPopup = NULL;
+    iState = EIdle;
+    CActiveScheduler::Add(this);
+}
+
+CQRCEncoderModel::~CQRCEncoderModel()
+{
+    if (iBitmapDrawer) delete iBitmapDrawer;
+    if (iCachedBitmapDrawer) delete iCachedBitmapDrawer;
+    if (iUtf8Text) delete iUtf8Text;
+    if (iImageEncoder) delete iImageEncoder;
+    if (iSettings) delete iSettings;
+    if (iWaitDialog)
+    {
+	iWaitDialog->ProcessFinishedL();
+	delete iWaitDialog;
+	iWaitDialog = NULL;
+    }
+    if (iInfoPopup) delete iInfoPopup;
+}
+
+CFbsBitmap* CQRCEncoderModel::Bitmap()
+{
+    if (!iBitmapDrawer) return NULL;
+    return iBitmapDrawer->Bitmap();
+}
+
+CFbsBitmap* CQRCEncoderModel::FullBitmap()
+{
+    if (!iCachedBitmapDrawer) return NULL;
+    return iCachedBitmapDrawer->Bitmap();
+}
+
+
+void CQRCEncoderModel::EncodeL(const TDesC8 &aText)
+{
+
+    iState = EEncodingText;
+
+    //const char* utf8TextPtr = reinterpret_cast<const char*>(aText.PtrZ());
+
+    const char* utf8TextPtr = reinterpret_cast<const char*>(aText.Ptr());
+
+    TInt qrcSize = iQRCEncoder.EncodeText(utf8TextPtr);
+
+    if (qrcSize > 0)
+    {
+	DrawQRCImageL(qrcSize);
+	// QR code image is ready! 
+	ShowInfoMessageL(R_GENERATOR_MSG2);
+    }
+    else
+    {
+	// Couldn't generate QR code!
+	ErrorNoteL(NULL, R_GENERATOR_MSG1);
+    }
+
+    iState = EIdle;
+}
+
+
+
+void CQRCEncoderModel::EncodeL(const TDesC16 &aText)
+{
+    if (iUtf8Text) delete iUtf8Text;
+    
+    iUtf8Text = HBufC8::New(aText.Size());
+    if (!iUtf8Text)
+    {
+	iBitmapDrawer->ClearL(KRgbRed);
+	// Show Error
+	return;
+    }
+
+    TPtr8 p = iUtf8Text->Des();
+    TInt err = CnvUtfConverter::ConvertFromUnicodeToUtf8(p/*iUtf8Text->Des()*/, aText);
+
+    if (err != KErrNone)
+    {
+	ShowErrorL(err);
+    }
+   
+    else EncodeL(p);
+}
+
+void CQRCEncoderModel::SaveImageL(TFileName &aFilePath)
+{
+    CFbsBitmap *bitmap = FullBitmap();
+    RFs rfs = CEikonEnv::Static()->FsSession();
+
+    if (iImageEncoder) delete iImageEncoder;
+
+    if ( aFilePath[0] == 'C')
+    {
+	aFilePath.Copy(PathInfo::PhoneMemoryRootPath());
+    }
+    aFilePath.Append(PathInfo::ImagesPath());
+    const TUid format = iSettings->ImageFormat(aFilePath); // appends filename + extention
+
+    CApaApplication::GenerateFileName(rfs, aFilePath); // generates a unique filename
+
+    iImageEncoder = CImageEncoder::FileNewL(rfs, aFilePath, CImageEncoder::EOptionAlwaysThread, format);
+
+    iImageEncoder->Convert(&iStatus, *bitmap);
+    iState = EEncodingImage;
+    SetActive();
+
+    iWaitDialog = new (ELeave) CAknWaitDialog(NULL, ETrue);     
+    if (iWaitDialog->ExecuteLD(R_GENERATOR_WAITDIALOG) == 0)
+    {
+	DoCancel();
+    }
+    else
+    {
+    
+	// show other dialogs after the WaitDialog is finished. 
+    
+	if (iState == EError) ShowErrorL(iStatus.Int());
+    
+	else ShowInfoMessageL(R_GENERATOR_MSG3);
+    }
+
+    iWaitDialog = NULL;
+    iState = EIdle;
+}
+
+void CQRCEncoderModel::SendImageL()
+{
+    CFbsBitmap *bitmap = FullBitmap();
+    RFs rfs = CEikonEnv::Static()->FsSession();
+
+    if (iImageEncoder) delete iImageEncoder;
+
+    TFileName fp(_L("D:\\"));
+    const TUid format = iSettings->ImageFormat(fp); // appends filename + extention
+
+
+    iImageEncoder = CImageEncoder::FileNewL(rfs, fp, CImageEncoder::EOptionAlwaysThread, format);
+
+    iImageEncoder->Convert(&iStatus, *bitmap);
+    iState = EEncodingImage;
+    SetActive();
+
+    iWaitDialog = new (ELeave) CAknWaitDialog(NULL, ETrue);     
+    if (iWaitDialog->ExecuteLD(R_GENERATOR_WAITDIALOG) == 0)
+    {
+	DoCancel();
+    }
+    else
+    {
+    
+	// show other dialogs after the WaitDialog is finished. 
+    
+	if (iState == EError) ShowErrorL(iStatus.Int());
+    
+	else
+	{
+	    SendFileL(fp);
+	    BaflUtils::DeleteFile(rfs, fp);
+	}
+    }
+
+    iWaitDialog = NULL;
+    iState = EIdle;
+
+}
+
+TBool CQRCEncoderModel::ImageReady()
+{
+    return Finished() && (FullBitmap() != NULL);
+}
+
+TBool CQRCEncoderModel::Finished()
+{
+    return (iState == EIdle);
+}
+
+void CQRCEncoderModel::DrawQRCImageL(const TInt &aSize)
+{
+    TInt scale = iSettings->iScale;
+    TInt e = (iSettings->iBorder)*scale;
+    TInt w = (aSize*scale)+(e*2);
+    TInt h = (aSize*scale)+(e*2);
+    TSize bmSize(w, h);
+
+    if (iCachedBitmapDrawer) delete iCachedBitmapDrawer;
+
+    iCachedBitmapDrawer = CBitmapDrawer::NewL(bmSize);
+
+    TUint32 c0 = RGB2BGR(iSettings->iColors[0]);
+    TUint32 c1 = RGB2BGR(iSettings->iColors[1]);
+
+    iCachedBitmapDrawer->ClearL(TRgb(c0));
+    iCachedBitmapDrawer->SetBrushColorL(TRgb(c1), ETrue);
+
+    for (TInt y = 0; y < aSize; y++)
+    {
+	for (TInt x = 0; x < aSize; x++)
+	{
+	   if (iQRCEncoder.GetModule(x, y)){
+
+	       TRect r(TPoint(e+x*scale, e+y*scale), TSize(scale, scale));
+	       iCachedBitmapDrawer->DrawRectL(r);
+	   }	   	   
+	}
+    }
+
+    TRect dst(iBitmapDrawer->Size());
+    iBitmapDrawer->Gc()->DrawBitmap(dst, iCachedBitmapDrawer->Bitmap());
+}
+
+void CQRCEncoderModel::ShowInfoMessageL(TInt aResourceId, TInt aAlignment, TInt aXpos, TInt aYPos, TInt aShowTime)
+{
+    if (!iInfoPopup)
+    {
+	iInfoPopup = CAknInfoPopupNoteController::NewL();
+    }
+       
+    if (aResourceId != 0)
+    {
+	HBufC *textResource = CCoeEnv::Static()->AllocReadResourceLC(aResourceId);	
+	iInfoPopup->SetTextL(*textResource);
+	CleanupStack::PopAndDestroy(textResource);
+    }
+
+    if (aAlignment == -1) aAlignment = EHLeftVTop;
+    
+    iInfoPopup->SetPositionAndAlignment(TPoint(aXpos, aYPos), (TGulAlignmentValue)aAlignment);
+
+    if (aShowTime > 0) iInfoPopup->SetTimePopupInView(aShowTime);
+
+
+    iInfoPopup->ShowInfoPopupNote();
+}
+
+
+
+void CQRCEncoderModel::RunL()
+{
+    switch(iState)
+    {
+	case EEncodingImage:
+	
+	    if (iWaitDialog) iWaitDialog->ProcessFinishedL();
+
+	    if (iStatus.Int() != KErrNone)
+	    {
+
+		iState = EError;
+	    }
+	    break;
+	default:
+	    break;
+    }
+}
+
+void CQRCEncoderModel::DoCancel()
+{
+    if ( iImageEncoder)
+    {
+        iImageEncoder->Cancel();
+    }
+}
+
+void CQRCEncoderModel::CreateSettingsL()
+{
+    iSettings = CGeneratorSettings::NewL(&iQRCEncoder);
+}
+
+CGeneratorSettings* CQRCEncoderModel::Settings()
+{
+    return iSettings;
+}
+
+
+// Implementation of CQRCDecoderModel
+
+CQRCDecoderModel::CQRCDecoderModel():CActive(EPriorityStandard)
+{
+    iState = EIdle;
+    iViewContainer = NULL;
+    iImageView = NULL;
+    iImageBitmap = NULL;
+    iInfoView = NULL;
+    iWaitDialog = NULL;
+    iDataAvailable = EFalse;
+    CActiveScheduler::Add(this);
+}
+
+CQRCDecoderModel::~CQRCDecoderModel()
+{
+    if (iViewContainer){
+	delete iViewContainer;
+	iViewContainer = NULL;
+    }
+
+    if (iImageHandler){
+	delete iImageHandler;
+	iImageHandler = NULL;
+    }
+
+    if (iImageBitmap){
+	delete iImageBitmap;
+	iImageBitmap = NULL;
+    }
+
+    if (iWaitDialog)
+    {
+	iWaitDialog->ProcessFinishedL();
+	delete iWaitDialog;
+	iWaitDialog = NULL;
+    }
+
+}
+
+
+CViewContainer* CQRCDecoderModel::SetupViewL(const TRect &aRect)
+{
+
+    if (iViewContainer)
+    {
+    
+	iViewContainer->SetRect(aRect);
+	LayoutViewControls();
+	return iViewContainer;
+    }
+
+    iViewContainer = new (ELeave) CViewContainer;
+    iViewContainer->ConstructL(aRect, ETrue /* Skinned Container */);
+
+    iImageView = new (ELeave) CEikImage;
+    iImageView->SetPictureOwnedExternally(ETrue);
+    iImageView->SetContainerWindowL(*iViewContainer);
+    //iImageView->SetBrushStyle(CGraphicsContext::EForwardDiagonalHatchBrush);
+
+    iViewContainer->AddControlL(iImageView);
+
+    iInfoView = new (ELeave) CTextEdit;
+    iInfoView->ConstructL(aRect, iViewContainer);
+
+    TRgb textColor;
+    AknsUtils::GetCachedColor(AknsUtils::SkinInstance(), textColor, KAknsIIDQsnTextColors, EAknsCIQsnTextColorsCG6);
+    iInfoView->SetTextColorL(textColor);
+    iInfoView->SetReadOnly(ETrue);
+    iViewContainer->AddControlL(iInfoView);
+    LayoutViewControls();
+    return iViewContainer;
+
+}
+
+CViewContainer* CQRCDecoderModel::GetView()
+{
+    return iViewContainer;
+}
+
+void CQRCDecoderModel::LayoutViewControls()
+{
+    if (!iViewContainer) return;
+
+    TSize viewSize = iViewContainer->Size();
+    TInt space = 10;
+    TInt viewW = viewSize.iWidth;
+    TInt viewH = viewSize.iHeight;
+    TInt w = (viewW-space)/2;
+    TInt h = viewH/2;
+
+    TInt x = (viewW-(w*2))/2;
+    TInt y = (viewH-h)/2;
+
+    TRect rect1(TPoint(x, y), TSize(w, h));
+    iImageView->SetRect(rect1);
+
+    TRect rect2(TPoint(x+space+w, y), TSize(w, h));
+    iInfoView->SetRect(rect2);
+}
+
+
+TBool CQRCDecoderModel::DecodeBitmap(CFbsBitmap* aBitmap)
+{
+    TSize size = aBitmap->SizeInPixels();
+    TInt w = size.iWidth, h = size.iHeight;
+
+    TUint8 *data = new TUint8[w*h];
+    if (!data)
+    {
+	StepCompleted(EError, KErrNoMemory);
+	return EFalse;
+    }
+
+    QRCScanHelper::BGRBitmapToGray(aBitmap, data);
+    //SaveBMData("D:\\1bpp.bmp", w, h, 1, data);
+    iState = EDecodingImage;
+    TInt ret = iDecoder.DecodeImageData(data, size.iWidth, size.iHeight/*, bpp*/); 
+    delete data;
+
+    if (ret < 1)
+    {
+	StepCompleted(EError, (ret == 0) ? KErrNotFound : KErrNone);
+	return EFalse;
+    }
+
+
+    StepCompleted(EImageDecoded);
+    return ETrue;
+}
+
+TBool CQRCDecoderModel::DecodeBitmapData(CFbsBitmap* aBitmap)
+{
+
+    TSize size = aBitmap->SizeInPixels();
+    TInt w = size.iWidth, h = size.iHeight;
+    TInt bpp = TDisplayModeUtils::NumDisplayModeBitsPerPixel(aBitmap->DisplayMode())/8;
+
+    TInt ret = iDecoder.DecodeImageData(aBitmap->DataAddress(), w, h, bpp); 
+
+    if (ret < 1)
+    {
+	StepCompleted(EError, (ret == 0) ? KErrNotFound : KErrNone);
+	return EFalse;
+    }
+
+    StepCompleted(EImageDecoded);
+    return ETrue;
+
+}
+
+
+void CQRCDecoderModel::SetBitmap(CFbsBitmap* aBitmap)
+{
+    if (iImageBitmap) delete iImageBitmap;   
+    iImageBitmap = aBitmap;
+}
+	
+void CQRCDecoderModel::StartDecodeL(CFbsBitmap* aBitmap)
+{
+    if (aBitmap) SetBitmap(aBitmap);
+
+    if (!iImageBitmap)
+    {
+	ShowErrorL(KErrArgument);
+	return;
+    }
+    if (!iImageHandler)
+    {
+
+	iImageHandler = NOCRUtils::CImageHandler::NewL(iImageBitmap, *this);
+    }
+    else
+    {
+	iImageHandler->SetBitmap(iImageBitmap);
+    }
+
+    TRAPD(err, iImageHandler->ScaleL(iImageView->Size()));
+    if (err != KErrNone)
+    {
+	ShowErrorL(err);
+    }
+    else{
+ 
+	iState = ELoadingImage;
+	iWaitDialog = new (ELeave) CAknWaitDialog(NULL, ETrue);
+        
+	if (iWaitDialog->ExecuteLD(R_DECODER_WAITDIALOG) == 0)
+	{
+            DoCancel();
+        }
+	else DecodeFinishedL();
+	iWaitDialog = NULL;
+    }
+
+}
+
+
+void CQRCDecoderModel::StartDecodeL(const TFileName &aFileName)
+{
+   
+
+    if (!iImageHandler)
+    {
+
+	iImageBitmap = new (ELeave) CFbsBitmap;	
+	iImageHandler = NOCRUtils::CImageHandler::NewL(iImageBitmap, *this);
+    }
+
+    RFs& rfs = CCoeEnv::Static()->FsSession();
+    TRAPD(err, iImageHandler->LoadFileAndScaleL(rfs, aFileName, iImageView->Size()));
+    
+    if (err != KErrNone)
+    {
+	ShowErrorL(err);
+    }
+    else{
+ 
+	iState = ELoadingImage;
+	iWaitDialog = new (ELeave) CAknWaitDialog(NULL, ETrue);
+        
+	if (iWaitDialog->ExecuteLD(R_DECODER_WAITDIALOG) == 0)
+	{
+            DoCancel();
+        }
+	else DecodeFinishedL(&aFileName);
+	iWaitDialog = NULL;
+    }
+}
+
+void CQRCDecoderModel::DecodeFinishedL(const TDesC *aFileName)
+{
+    if (iState == ECodeExtracted)
+    {
+	ShowDataMenuL();
+	DisplayQRInfoL();
+	if (aFileName)
+	{
+	    CEikonEnv* env = CEikonEnv::Static();
+	
+	    CHistoryStore* hs = STATIC_CAST(CSquirrelAppUi*, env->EikAppUi())->HistoryStore(); 
+	
+	    if (hs) hs->AddItemL(*aFileName);
+	}
+
+    }
+
+    else if (iState == EError)
+    {
+	iInfoView->ClearL();
+	ShowError();
+    }
+	
+    iStatus = KErrNone; // reset
+    iState = EIdle;
+}
+
+
+
+void CQRCDecoderModel::ShowError()
+{
+    TInt errCode = iStatus.Int(); 
+    if (errCode == KErrNotFound)
+    {
+	ErrorNoteL(NULL, R_DECODER_MSG1); // qrcode not found
+    }
+
+    else if (errCode != KErrNone)
+    {
+	ShowErrorL(errCode); // error while loading image
+
+    }
+    // errno set by the decoder.
+    else
+    {
+	const wchar_t* error = iDecoder.GetWError();
+	if (error)
+	{
+	    TPtrC errorPtr((TUint16*)error);
+	    ErrorNoteL(&errorPtr);
+	}
+    }
+}
+
+void CQRCDecoderModel::SendPayloadL()
+{
+
+    RFs& rfs = CCoeEnv::Static()->FsSession();
+    RFile f;  
+   
+    TFileName fp(_L("D:\\Squirrel"));
+ 
+    switch (iQRC.payload_type)
+    {
+	case PL_BINARY:
+	    fp.Append(_L(".bin"));
+	    break;
+
+	case PL_CONTACT:
+	    fp.Append(_L(".vcf"));
+
+	case PL_CALENDAR:
+	    fp.Append(_L(".vcs"));
+	    break;
+
+	case PL_CALENDARv2:
+	    fp.Append(_L(".ics"));
+	    break;
+
+	default:
+	    fp.Append(_L(".txt"));
+	    break;
+    }
+
+    // write data to temp file
+   
+    TPtrC8 dataPtr((TUint8*) iQRC.data.payload, iQRC.data.payload_len);
+ 
+    User::LeaveIfError(f.Replace(rfs, fp, EFileWrite/*|EFileShareAny*/));
+    User::LeaveIfError(f.Write(dataPtr));
+    f.Close();
+    SendFileL(fp);
+    BaflUtils::DeleteFile(rfs, fp); 
+}
+
+
+void CQRCDecoderModel::ViewPayloadL(TDesC &aPayload)
+{
+
+    TPtrC8 payload8((TUint8*)iQRC.data.payload, iQRC.data.payload_len);
+
+    switch (iQRC.payload_type)
+    {
+	/*case PL_TEXT:
+	case PL_BINARY: // encoded as hex string
+	    ViewTextWithNotePadL(aPayload);
+	    break;
+	case PL_URL:
+	    break;
+	*/
+	/*case PL_CONTACT:
+	case PL_CALENDAR:
+	    break;
+	*/
+	default:
+	    ViewTextWithNotePadL(aPayload);
+	    break;
+    }
+}
+
+
+TBool CQRCDecoderModel::DataAvailable()
+{
+    return iDataAvailable;
+}
+
+void CQRCDecoderModel::ShowDataMenuL(TBool aNewData)
+{
+
+    static TUint16* payload = NULL;  
+    static TInt len = 0;
+    if (aNewData)
+    {
+	payload = (TUint16*) iDecoder.ParseAndEncodePayload(&iQRC, len, "UTF-16LE");
+    }
+
+    if (!payload)
+    {
+	if (aNewData)
+	{
+	    ShowError();
+	}
+	else
+	{
+	    // show some message ...
+	}
+	return;
+    }
+
+    TPtrC payloadPtr(payload, len); 
+ 
+    TInt item(0);
+    CAknListQueryDialog* d = new (ELeave)CAknListQueryDialog( &item );
+
+    if ( d->ExecuteLD(R_QRCDATA_MENU_DIALOG) )
+    {
+        switch ( item )
+        {
+	    case 0: // View
+		//ViewPayloadL(payloadPtr);
+		ViewTextWithNotePadL(payloadPtr);
+
+		break;
+	    case 1: // Save
+		ViewTextWithNotePadL(payloadPtr, ETrue);
+		break;
+	    case 2: // Copy 
+		CopyTextToClipboardL(payloadPtr);
+		break;
+	    case 3:// send 	    	
+		SendPayloadL();
+		break;
+	    default:
+		break;
+	}
+    }
+}
+
+void CQRCDecoderModel::DisplayQRInfoL()
+{
+    TBuf<64> infoBuf;
+
+    TInt qrcsize = iQRC.code.size;
+    infoBuf.AppendFormat(_L("Version: %d\n"), iQRC.data.version);
+    infoBuf.AppendFormat(_L("Size: %dx%d\n"), qrcsize, qrcsize);
+    infoBuf.AppendFormat(_L("ECI: %d"), iQRC.data.eci);
+    
+    iInfoView->ClearL();
+    iInfoView->WriteL(infoBuf);
+    //iViewContainer->UpdateControl(0);
+    iViewContainer->DrawNow();
+}
+
+
+void CQRCDecoderModel::StepCompleted(TState aState, TInt err)
+{
+    iState = aState; 
+    SetActive();
+    TRequestStatus* status = &iStatus;
+    User::RequestComplete(status, err);
+}
+
+void CQRCDecoderModel::RunL()
+{
+    // Handle cancel ??
+
+    if (iState == EImageLoaded)
+    {
+	DecodeBitmap(iImageBitmap);
+    }
+
+    else if (iState == EImageDecoded)
+    {
+	iState = EExtractingCode;
+
+	Mem::FillZ(&iQRC, sizeof(QRC));
+	if (!iDecoder.ExtractCode(0, &iQRC))
+	{
+
+	    iDataAvailable = EFalse;
+	    StepCompleted(EError);
+	}
+ 	else {
+
+	    iDataAvailable = ETrue;
+	    StepCompleted(ECodeExtracted);
+	}
+    }
+
+    else if (iState == ECodeExtracted || iState == EError)
+    {
+	if (iWaitDialog) iWaitDialog->ProcessFinishedL();
+    }
+
+}
+
+void CQRCDecoderModel::DoCancel()
+{
+    if (iImageHandler) iImageHandler->Cancel();
+    //StepCompleted(KErrCanceled);
+}
+
+void CQRCDecoderModel::ImageOperationCompleteL(TInt aError)
+{
+
+    if (aError != KErrNone)
+    {
+	StepCompleted(EError, aError);
+    }
+    else
+    {
+
+	iImageView->SetBitmap(iImageHandler->ScaledBitmap());
+	iViewContainer->DrawNow();
+	StepCompleted(EImageLoaded);
+    }
+}
+
+QRCScanHelper::QRCScanHelper()
+{
+    iBuffer = NULL;
+    iBufferSize = 0;
+}
+
+QRCScanHelper::~QRCScanHelper()
+{
+    if (iBuffer) delete iBuffer;
+}
+
+TInt QRCScanHelper::AllocateBuffer(const TInt aLen)
+{
+    if (iBuffer) delete iBuffer;
+    iBuffer = new TUint8[aLen];
+    if (iBuffer) iBufferSize = aLen;
+    return iBuffer ? KErrNone : KErrNoMemory;
+}
+
+
+
+void QRCScanHelper::DrawQRC(CFbsBitmap* aBitmap, QRC* aQRC)
+{
+    TInt lineWidth = 3;
+    iGc->SetPenColor(KRgbGreen);
+    iGc->SetPenSize(TSize(lineWidth, lineWidth));
+    
+    struct quirc_code code = aQRC->code;
+    for (TInt j = 0; j < 4; j++)
+    {
+	struct quirc_point *a = &code.corners[j];
+	struct quirc_point *b = &code.corners[(j + 1) % 4];
+
+	TPoint start((a->x)-lineWidth, (a->y)-lineWidth);
+	TPoint end((b->x)-lineWidth, (b->y)-lineWidth);
+	iGc->DrawLine(start, end);
+    }
+}
+
+
+TInt QRCScanHelper::FindCode(CFbsBitmap* aBitmap)
+{
+
+    TSize size = aBitmap->SizeInPixels();
+    TInt w = size.iWidth, h = size.iHeight;
+    TInt len = w*h;
+
+    if (iBufferSize != len)
+    {
+	if (AllocateBuffer(len) != KErrNone) return -1;
+	if (!iDecoder.Init(w, h)) return -1;
+    
+    }
+
+    QRCScanHelper::BGRBitmapToGray(aBitmap, iBuffer);
+ 
+    TInt ret = iDecoder.DecodeImageData(iBuffer, len); 
+
+    if (ret > 0)
+    {
+	//iGc->SetPenColor(KRgbGreen);
+	//iGc->DrawText(_L("detected"), TPoint(0, 30));
+	QRC q;
+	ret = iDecoder.ExtractCode(0, &q);
+	if (iGc) DrawQRC(aBitmap, &q);
+    }
+
+    return ret;
+}
+
+
+const TUint16* QRCScanHelper::GetError()
+{
+    return (const TUint16*) iDecoder.GetWError();
+}
+
+
+void QRCScanHelper::BGRBitmapToGray(CFbsBitmap* aBitmap, TUint8* &aBuffer)
+{
+
+
+    TSize size = aBitmap->SizeInPixels();
+    TInt w = size.iWidth, h = size.iHeight;
+
+    TBitmapUtil u(aBitmap);
+    u.Begin(TPoint(0, 0));
+    TUint8* p = aBuffer;
+    TRgb pix;
+    for(TInt y=0; y < h; y++)
+    {
+	for (TInt x=0; x < w; x++)
+	{
+	    //TRgb pix(u.GetPixel());	
+	    pix.SetInternal(u.GetPixel());
+	    TUint8 mono = (TUint8) TColorConvertor::RgbToMonochrome(pix);     
+	    (*p++) = mono;
+	    u.SetPos(TPoint(x, y));
+	}
+    }
+    u.End();
+}
+
+

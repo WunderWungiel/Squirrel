@@ -1,0 +1,661 @@
+/*
+============================================================================
+ Name		: Squirrel.rss
+ Author	  : JigokuMaster
+ Copyright   : Your copyright notice
+ Description : This file contains all the resources for the Squirrel.
+============================================================================
+*/
+//  RESOURCE IDENTIFIER
+NAME SQUI	// 4 letter ID
+
+//  INCLUDES
+#include <eikon.rh>
+#include <avkon.rsg>
+#include <avkon.rh>
+#include <appinfo.rh>
+#include <commondialogs.rh>
+#include "Squirrel.hrh"
+#include "Squirrel.rls"
+
+//  RESOURCE DEFINITIONS
+// -----------------------------------------------------------------------------
+//
+//	Define the resource file signature
+//	This resource should be empty.
+//
+// -----------------------------------------------------------------------------
+//
+RESOURCE RSS_SIGNATURE
+	{
+	}
+
+// -----------------------------------------------------------------------------
+//
+//	Default Document Name
+//
+// -----------------------------------------------------------------------------
+//
+RESOURCE TBUF r_default_document_name
+	{
+	buf="SQUI";
+	}
+
+// -----------------------------------------------------------------------------
+//
+//	Define default menu and CBA key.
+//
+// -----------------------------------------------------------------------------
+//
+RESOURCE EIK_APP_INFO
+{
+    hotkeys = r_app_hotkeys;
+    menubar = r_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_EXIT;
+}
+
+
+RESOURCE HOTKEYS r_app_hotkeys
+{
+    control =
+    {
+        HOTKEY { command = EAknCmdExit; key='e'; }
+    };
+}
+
+
+RESOURCE AVKON_VIEW r_main_view
+{
+    menubar = r_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_EXIT;
+}
+
+RESOURCE AVKON_VIEW r_decoder_view
+{
+    menubar = r_decoderview_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
+RESOURCE AVKON_VIEW r_history_view
+{
+    menubar = r_historyview_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
+RESOURCE AVKON_VIEW r_scanner_view
+{
+    menubar = r_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
+RESOURCE AVKON_VIEW r_generator_view
+{
+    menubar = r_generatorview_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
+RESOURCE AVKON_VIEW r_about_view
+{
+    menubar = r_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
+RESOURCE GRID r_mainview_grid
+{
+    array_id = r_mainview_grid_items;
+    flags = EAknListBoxSelectionGrid;
+    style= r_mainview_grid_style;
+}
+
+RESOURCE ARRAY r_mainview_grid_items
+{
+    items = {
+
+    LBUF { txt = qtn_mainview_item1_string; },
+    LBUF { txt = qtn_mainview_item2_string; },
+    LBUF { txt = qtn_mainview_item3_string; },
+    LBUF { txt = qtn_mainview_item4_string; },
+    LBUF { txt = qtn_mainview_item5_string; }
+    };	
+}
+
+RESOURCE GRID_STYLE r_mainview_grid_style
+{
+    layoutflags=EAknGridHorizontalOrientation|
+    EAknGridLeftToRight | EAknGridTopToBottom;
+    primaryscroll= EAknGridFollowsItemsAndLoops;// horizontal scroll
+    secondaryscroll=EAknGridFollowsItemsAndLoops;// vertical scroll
+    itemsinprimaryorient=2; // number of items horizontally per screen
+    itemsinsecondaryorient=2; // number of items vertically per screen
+    gapwidth=3;
+    gapheight=3;
+    height = 50;
+    width = 50;
+}
+
+RESOURCE LISTBOX r_aboutview_listbox
+{
+    array_id = r_aboutview_listbox_items;
+    flags = EAknListBoxSelectionList;
+}
+
+RESOURCE ARRAY r_aboutview_listbox_items
+{
+    items = {
+    LBUF { txt = qtn_aboutview_item1_string; },
+    LBUF { txt = qtn_aboutview_item2_string; },
+    LBUF { txt = qtn_aboutview_item3_string; },
+    LBUF { txt = qtn_aboutview_item4_string; }
+    };	
+}
+
+RESOURCE LISTBOX r_historyview_listbox
+{
+
+    flags = EAknListBoxSelectionList;
+}
+
+
+
+
+RESOURCE FORM r_generator_settings_form
+{
+    flags = EEikFormEditModeOnly|EEikFormUseDoubleSpacedFormat;
+    items = 
+    {
+        DLG_LINE
+        {
+	    type = EEikCtNumberEditor;
+            prompt = qtn_generatorsettings_item1_string;
+            id = EGeneratorSettingsItem1;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+	    control = NUMBER_EDITOR
+            {
+		min = 1;
+		max = 40;
+	    };
+	},
+        DLG_LINE
+        {
+            type = EEikCtNumberEditor;
+            prompt = qtn_generatorsettings_item2_string;
+            id = EGeneratorSettingsItem2;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+            control = NUMBER_EDITOR
+            {
+		min = 1;
+		max = 40;
+	    };
+	},
+        DLG_LINE
+        {
+            type = EAknCtPopupFieldText;
+            prompt = qtn_generatorsettings_item3_string;
+            id = EGeneratorSettingsItem3;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+            control = POPUP_FIELD_TEXT
+                {
+                popupfield = POPUP_FIELD
+                    {
+                    width = 100;
+                    };
+                textarray = r_ecl_textarray;
+                active = 3;    
+                };
+	},
+        DLG_LINE
+        {
+            type = EEikCtNumberEditor;
+            prompt = qtn_generatorsettings_item4_string;
+            id = EGeneratorSettingsItem4;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+            control = NUMBER_EDITOR
+            {
+		min = 1;
+		max = 640;
+	    };
+	},
+        DLG_LINE
+        {
+            type = EEikCtNumberEditor;
+            prompt = qtn_generatorsettings_item5_string;
+            id = EGeneratorSettingsItem5;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+            control = NUMBER_EDITOR
+            {
+		min = 1;
+		max = 10;
+	    };
+	},
+        DLG_LINE
+        {
+            type = EAknCtPopupFieldText;
+            prompt = qtn_generatorsettings_item6_string;
+            id = EGeneratorSettingsItem6;
+            itemflags = EEikDlgItemTakesEnterKey | EEikDlgItemOfferAllHotKeys;
+            control = POPUP_FIELD_TEXT
+                {
+                popupfield = POPUP_FIELD
+                    {
+                    width = 100;
+                    };
+                textarray = r_imageformats_textarray;
+                active = 0;    
+                };
+	},
+        DLG_LINE
+        {
+            type = EEikCtEdwin;
+            prompt = qtn_generatorsettings_item7_string;
+            id = EGeneratorSettingsItem7;
+            itemflags = EEikDlgItemTakesEnterKey;
+            control = EDWIN
+                {
+		    maxlength=8;
+                };
+	},
+        DLG_LINE
+        {
+            type = EEikCtEdwin;
+            prompt = qtn_generatorsettings_item8_string;
+            id = EGeneratorSettingsItem8;
+            itemflags = EEikDlgItemTakesEnterKey;
+            control = EDWIN
+                {
+		    maxlength=8;
+                };
+	}
+    };
+}
+
+RESOURCE ARRAY r_ecl_textarray
+{
+    items =
+        {
+        LBUF { txt = "Low"; },
+        LBUF { txt = "Medium"; },
+	LBUF { txt = "Quartile"; },
+        LBUF { txt = "High"; }
+        };
+}    
+
+
+RESOURCE ARRAY r_imageformats_textarray
+{
+    items =
+        {
+        LBUF { txt = "PNG"; },
+        LBUF { txt = "JPG"; },
+        LBUF { txt = "BMP"; }
+        };
+}    
+
+
+// -----------------------------------------------------------------------------
+//
+//   r_menubar
+//   Main menubar
+//
+// -----------------------------------------------------------------------------
+//
+RESOURCE MENU_BAR r_menubar
+{
+    titles = {
+	MENU_TITLE { 
+	    menu_pane = R_AVKON_MENUPANE_EMPTY; 
+	}
+    };
+}
+
+// -----------------------------------------------------------------------------
+//
+//   r_menu
+//   Menu for "Options"
+//
+// -----------------------------------------------------------------------------
+//
+    
+/*
+RESOURCE MENU_PANE r_menu
+{
+    items = {};
+}
+*/
+
+
+RESOURCE MENU_BAR r_decoderview_menubar
+{
+    titles = {
+	    MENU_TITLE { menu_pane = r_decoderview_menu; }
+    };
+}
+    
+RESOURCE MENU_PANE r_decoderview_menu
+{
+    items = {
+
+	MENU_ITEM {
+            command = ECmdOpenImage;
+            txt = qtn_decoderview_cmd1_string;
+	    },
+	MENU_ITEM {
+            command = ECmdOpenQRCDataMenu;
+            txt = qtn_decoderview_cmd2_string;
+        }
+
+    };
+}
+
+
+RESOURCE MENU_BAR r_historyview_menubar
+{
+    titles = {
+	    MENU_TITLE { menu_pane = r_historyview_menu; }
+    };
+}
+    
+RESOURCE MENU_PANE r_historyview_menu
+{
+    items = {
+
+	MENU_ITEM {
+            command = ECmdDeleteHistory;
+            txt = qtn_historyview_cmd1_string;
+	    },
+	MENU_ITEM {
+            command = ECmdCleanHistory;
+            txt = qtn_historyview_cmd2_string;
+        }
+
+    };
+}
+
+
+
+RESOURCE MENU_BAR r_generatorview_menubar
+{
+    titles = {
+	    MENU_TITLE { menu_pane = r_generatorview_menu; }
+    };
+}
+    
+RESOURCE MENU_PANE r_generatorview_menu
+{
+    items = {
+
+
+	MENU_ITEM {
+            cascade = r_generatorview_templates_menu;
+            txt = qtn_generatorview_cmd1_string;
+	    },
+	MENU_ITEM {
+            command = ECmdGenerateImage;
+            txt = qtn_generatorview_cmd2_string;
+	    },
+
+	MENU_ITEM {
+	    command = ECmdExport;
+            cascade = r_generatorview_export_menu;
+            txt = qtn_generatorview_cmd3_string;
+	},	
+	MENU_ITEM {
+            command = ECmdOpenGeneratorSettings;
+            txt = qtn_generatorview_cmd4_string;
+        }
+    };
+}
+
+
+RESOURCE MENU_PANE r_generatorview_templates_menu
+{
+    items = {
+
+	MENU_ITEM {
+            command = ECmdSelectMemo;
+            txt = qtn_generatorview_templates_cmd1_string;
+	    },
+	MENU_ITEM {
+            command = ECmdSelectContact;
+            txt = qtn_generatorview_templates_cmd2_string;
+	},
+	MENU_ITEM {
+            command = ECmdSelectCalendar;
+            txt = qtn_generatorview_templates_cmd3_string;
+	},
+	MENU_ITEM {
+            command = ECmdSelectBookmark;
+            txt = qtn_generatorview_templates_cmd4_string;
+	},
+	MENU_ITEM {
+            command = ECmdSelectIP;
+            txt = qtn_generatorview_templates_cmd5_string;
+        },
+	MENU_ITEM {
+            command = ECmdSelectIMEI;
+            txt = qtn_generatorview_templates_cmd6_string;
+        }
+  
+    };
+}
+
+
+RESOURCE MENU_PANE r_generatorview_export_menu
+{
+    items = {
+	MENU_ITEM {
+            command = ECmdSaveImage;
+            txt = qtn_generatorview_export_cmd1_string;
+	},
+	MENU_ITEM {
+            command = ECmdSendImage;
+            txt = qtn_generatorview_export_cmd2_string;
+        }
+    };
+}
+
+
+// Dialogs
+
+RESOURCE DIALOG r_generator_settings_form_dialog
+{
+    flags = EAknDialogGenericFullScreen;
+    buttons = R_AVKON_SOFTKEYS_OK_CANCEL;
+    form = r_generator_settings_form;
+}
+
+RESOURCE DIALOG r_qrcdata_menu_dialog
+{
+    flags = EGeneralQueryFlags;
+    buttons = R_AVKON_SOFTKEYS_OK_CANCEL;
+    items =
+        {
+        DLG_LINE
+            {
+            type = EAknCtListQueryControl;
+            id = EListQueryControl;
+            control = AVKON_LIST_QUERY_CONTROL
+                {
+                listtype = EAknCtSinglePopupMenuListBox;
+                heading = "Data: ";
+                listbox = LISTBOX
+                    {
+                    flags = EAknListBoxSelectionList;
+                    array_id = r_qrcdata_menu_items;
+                    };
+                };
+            }
+        };
+}
+
+
+RESOURCE DIALOG r_contact_selection_dialog
+{
+  flags = EAknDialogSelectionList;
+  buttons = R_AVKON_SOFTKEYS_OK_CANCEL;
+  items =
+  {
+    DLG_LINE
+    {
+      type = EAknCtSingleListBox;
+      id = ESelectionListControl;
+      control = LISTBOX
+      {
+	flags = EAknListBoxSelectionList;
+      };
+    }
+  };
+}
+
+
+RESOURCE ARRAY r_qrcdata_menu_items
+{
+    items = {
+	LBUF { txt = qtn_decoder_datamenu_item1_string; },
+	LBUF { txt = qtn_decoder_datamenu_item2_string; },
+	LBUF { txt = qtn_decoder_datamenu_item3_string; },
+	LBUF { txt = qtn_decoder_datamenu_item4_string; }
+	};
+}
+
+RESOURCE DIALOG r_about_query_dialog
+{
+	flags = EGeneralQueryFlags | EEikDialogFlagNoBorder | EEikDialogFlagNoShadow;
+	buttons = R_AVKON_SOFTKEYS_OK_EMPTY;
+	items=
+		{
+    DLG_LINE 
+			{
+			type = EAknCtPopupHeadingPane;
+			id = EAknMessageQueryHeaderId;
+			itemflags = EEikDlgItemNonFocusing;
+			control = AVKON_HEADING
+				{
+				};
+    },
+		DLG_LINE
+			{
+			type = EAknCtMessageQuery;
+			id = EAknMessageQueryContentId;
+			control = AVKON_MESSAGE_QUERY
+				{
+				};
+			}
+		};
+}
+
+
+RESOURCE FILESELECTIONDIALOG r_select_imagefile_dialog
+{
+    filters =
+    {
+	FILTER
+	{
+	    filter_data = {"*.png", "*.bmp", "*.jpg", "*.jpeg"}; 
+	}
+    };
+}
+
+
+
+RESOURCE DIALOG r_decoder_waitdialog
+{
+    flags = EAknWaitNoteFlags | EEikDialogFlagWait;
+    buttons = R_AVKON_SOFTKEYS_CANCEL;
+    
+    items = {
+
+	DLG_LINE {
+
+	    type = EAknCtNote;
+	    id = EGeneralNote;
+	    control= AVKON_NOTE {
+
+		layout = EWaitLayout;
+		singular_label = qtn_decoder_msg2_string;
+		animation = R_QGN_GRAF_WAIT_BAR_ANIM;
+		};
+	}
+    };
+}
+
+RESOURCE DIALOG r_generator_waitdialog
+{
+    flags = EAknWaitNoteFlags | EEikDialogFlagWait;
+    buttons = R_AVKON_SOFTKEYS_CANCEL;
+    
+    items = {
+
+	DLG_LINE {
+
+	    type = EAknCtNote;
+	    id = EGeneralNote;
+	    control= AVKON_NOTE {
+
+		layout = EWaitLayout;
+		singular_label = qtn_generator_msg4_string;
+		animation = R_QGN_GRAF_WAIT_BAR_ANIM;
+		};
+	}
+    };
+}
+
+
+// resources for dialogs message, title ... etc
+
+RESOURCE TBUF r_decoder_msg1
+{
+    buf = qtn_decoder_msg1_string;
+}
+
+RESOURCE TBUF r_generator_msg1
+{
+    buf = qtn_generator_msg1_string;
+}
+
+RESOURCE TBUF r_generator_msg2
+{
+    buf = qtn_generator_msg2_string;
+}
+
+RESOURCE TBUF r_generator_msg3
+{
+    buf = qtn_generator_msg3_string;
+}
+
+RESOURCE TBUF r_driveselection_title
+{
+    buf = qtn_driveselection_title_string;
+}
+
+
+RESOURCE TBUF r_fileselection_title
+{
+    buf = qtn_fileselection_title_string;
+}
+
+// ---------------------------------------------------------------------------- 
+//
+// r_localisable_app_info
+//
+// ---------------------------------------------------------------------------- 
+//
+
+RESOURCE LOCALISABLE_APP_INFO r_localisable_app_info
+{
+	short_caption = qtn_caption_string;
+	caption_and_icon = 
+	CAPTION_AND_ICON_INFO
+	{
+		caption = qtn_caption_string;
+
+		number_of_icons = 1;
+		icon_file = "\\resource\\apps\\Squirrel.mif";
+	};
+}
+
+// End of File

@@ -1,0 +1,199 @@
+#ifndef __SQUIRRELMODEL_h__
+#define __SQUIRRELMODEL_h__
+
+#include <e32base.h>
+#include <fbs.h>
+#include <s32file.h>
+#include <imageconversion.h>
+#include <aknwaitdialog.h>
+#include "ImageHandler.h"
+#include "QRCTools.h"
+#include "uicommons.h"
+
+// utility functions 
+
+void GetPrivateFilePathL(RFs& aRfs, TFileName &aFilePath, const TDesC &aFileName);
+
+void ShowErrorL(const TInt aErrorCode);
+
+
+class CGeneratorSettings
+{
+
+public:
+
+    static CGeneratorSettings* NewL(QRCEncoder* iQRCEncoder);
+    virtual ~CGeneratorSettings();
+    void StoreL(TBool aCreate=EFalse);
+    TUid ImageFormat(TFileName &aFileName) const; 
+
+private: 
+    CGeneratorSettings(QRCEncoder* aQRCEncoder);
+    void ConstructL(); 
+    void CreateStoreL();
+    TBool RestoreL();
+
+public:
+    QRCEncoder* iQRCEncoder;
+    TInt iScale;
+    TInt iBorder;
+    TInt iImageFormatIndex;
+    TUint32 iColors[2];
+    CFileStore *iFileStore;
+};
+
+
+
+class CQRCEncoderModel : public CActive
+{
+    enum TState 
+    {
+	EIdle = 0, 
+	EEncodingText,
+	EDrawingImage,
+	EEncodingImage,
+	EError
+    };
+
+public:
+	CQRCEncoderModel(TSize aSize);
+	~CQRCEncoderModel();
+	CFbsBitmap* Bitmap();
+	CFbsBitmap* FullBitmap();
+	void EncodeL(const TDesC8 &aText);
+	void EncodeL(const TDesC16 &aText);
+	void SaveImageL(TFileName &aFilePath);
+	void SendImageL();
+	TBool ImageReady();
+	TBool Finished();
+	void CreateSettingsL();
+	CGeneratorSettings* Settings();
+
+private:
+
+	void DrawQRCImageL(const TInt &aSize);
+
+	void ShowInfoMessageL(TInt aResourceId=0, TInt aAlignment=-1, TInt aXpos=0, TInt aYPos=0, TInt aShowTime=0);
+
+	// from CActive
+	void RunL();
+	void DoCancel();
+
+private:
+	CBitmapDrawer *iBitmapDrawer;
+	CBitmapDrawer *iCachedBitmapDrawer;
+	CFbsBitmap *iQRCBitmap;
+	CImageEncoder *iImageEncoder;
+	QRCEncoder iQRCEncoder;
+	HBufC8 *iUtf8Text;
+	CGeneratorSettings *iSettings;
+	CAknWaitDialog *iWaitDialog;
+	CAknInfoPopupNoteController *iInfoPopup;
+	TState iState;
+
+};
+
+
+
+class CQRCDecoderModel: public CActive, NOCRUtils::MImageHandlerCallback
+{
+    enum TState 
+    {
+	EIdle = 0, 
+	ELoadingImage,
+	EImageLoaded,
+	EDecodingImage,
+	EImageDecoded,
+	EExtractingCode,
+	ECodeExtracted,
+	EError
+    };
+
+public:
+	CQRCDecoderModel();
+	~CQRCDecoderModel();
+
+	CViewContainer* SetupViewL(const TRect &aRect);
+	CViewContainer* GetView();
+
+	TBool DecodeBitmap(CFbsBitmap* aBitmap);
+
+	TBool DecodeBitmapData(CFbsBitmap* aBitmap);
+
+	void SetBitmap(CFbsBitmap* aBitmap);
+	
+	void StartDecodeL(CFbsBitmap* aBitmap=NULL);
+	
+	void StartDecodeL(const TFileName &aFileName);
+
+	void ShowError();
+
+	TBool DataAvailable();
+
+	void ShowDataMenuL(TBool aNewData=ETrue);
+	
+private:
+
+	void LayoutViewControls();
+
+	void DecodeFinishedL(const TDesC *aFileName=NULL);
+
+	void ViewPayloadL(TDesC &aPayload);
+
+	void SendPayloadL();
+
+	void DisplayQRInfoL();
+
+	void StepCompleted(TState aState, TInt err=KErrNone);
+
+
+	// from CActive
+	void RunL();
+
+	void DoCancel();
+
+private: // callbacks
+
+	/* from MImageHandlerCallback */
+
+        void ImageOperationCompleteL(TInt aError);
+private:
+	QRCDecoder iDecoder;
+	CViewContainer *iViewContainer;
+	CEikImage *iImageView;
+	CTextEdit /*CEikLabel*/ *iInfoView;
+	NOCRUtils::CImageHandler *iImageHandler;
+	CFbsBitmap *iImageBitmap; 
+	QRC iQRC;
+	CAknWaitDialog* iWaitDialog;
+	TState iState;
+	TBool iDataAvailable;
+};
+
+
+class QRCScanHelper
+{
+
+public:
+    QRCScanHelper();
+    ~QRCScanHelper();
+    TInt AllocateBuffer(const TInt aLen);
+    TInt FindCode(CFbsBitmap* aBitmap);
+    const TUint16* GetError();
+private:
+
+    void DrawQRC(CFbsBitmap* aBitmap, QRC* aQRC);
+
+public:
+    static void BGRBitmapToGray(CFbsBitmap* aBitmap, TUint8* &aBuffer);
+
+public:
+    CFbsBitGc* iGc;
+
+private:
+    QRCDecoder iDecoder;
+    TUint8* iBuffer; // gray data
+    TInt iBufferSize;
+};
+
+#endif // __SQUIRRELMODEL_h__

@@ -1,0 +1,16 @@
+ 
+/* This file has been generated, DO NOT MODIFY. */
+enum TMifSquirrel
+	{
+	EMbmSquirrelDecode = 16384,
+	EMbmSquirrelDecode_mask = 16385,
+	EMbmSquirrelGenerate = 16386,
+	EMbmSquirrelGenerate_mask = 16387,
+	EMbmSquirrelLoad = 16388,
+	EMbmSquirrelLoad_mask = 16389,
+	EMbmSquirrelAbout = 16390,
+	EMbmSquirrelAbout_mask = 16391,
+	EMbmSquirrelHistory = 16392,
+	EMbmSquirrelHistory_mask = 16393,
+	EMbmSquirrelLastElement
+	};

@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40" height="40" fill="none" version="1.1" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+ <g clip-path="url(#clip0_19_152)">
+  <path d="m36.667 20.417c0 12.347-4.3179 16.667-16.667 16.667-12.348 0-16.667-4.3196-16.667-16.667 0-12.348 4.3188-16.667 16.667-16.667 12.349 0 16.667 4.3188 16.667 16.667z" fill="#000" fill-opacity=".4"/>
+  <path d="m36.667 20c0 12.347-4.3179 16.667-16.667 16.667-12.348 0-16.667-4.3196-16.667-16.667 0-12.348 4.3188-16.667 16.667-16.667 12.349 0 16.667 4.3188 16.667 16.667z" fill="url(#paint0_linear_19_152)"/>
+  <path d="m20 3.3333c-12.348 0-16.667 4.3188-16.667 16.667 0 12.347 4.3188 16.667 16.667 16.667 12.349 0 16.667-4.3196 16.667-16.667 0-12.348-4.3179-16.667-16.667-16.667zm0 32.917c-12.149 0-16.25-4.1008-16.25-16.25 0-12.149 4.1008-16.25 16.25-16.25 12.149 0 16.25 4.1008 16.25 16.25 0 12.149-4.1008 16.25-16.25 16.25z" fill="url(#paint1_linear_19_152)" fill-opacity=".25"/>
+  <rect x="10.5" y="10.5" width="6" height="6" rx=".5" stroke="#000"/>
+  <g fill="#000">
+   <rect x="25" y="12" width="3" height="3"/>
+   <rect x="12" y="12" width="3" height="3"/>
+   <rect x="17" y="18" width="2" height="2" rx="1"/>
+  </g>
+  <rect x="21" y="28" width="2" height="2" rx="1" fill="#6A5C5B"/>
+  <rect x="25" y="20" width="2" height="2" rx="1" fill="#000"/>
+  <rect x="12.5" y="25.5" width="2" height="2" fill="#6A5C5B" stroke="#6A5C5B"/>
+  <rect x="23.5" y="10.5" width="6" height="6" rx=".5" stroke="#000"/>
+  <rect x="10.5" y="23.5" width="6" height="6" rx=".5" stroke="#6A5C5B"/>
+  <g stroke-linecap="round">
+   <path d="m20 11.8v5" stroke="#000"/>
+   <path d="m23.548 18v9" stroke="#6A5C5B"/>
+   <path d="m23.55 18v4" stroke="#000"/>
+   <path d="M29.3549 19.3334V22" stroke="#000"/>
+   <path d="m20 23v2.6667" stroke="#6A5C5B"/>
+  </g>
+  <g stroke="#000" stroke-linecap="round">
+   <path d="m21.6 13v2.33"/>
+   <path d="m18.3 14v2.33"/>
+   <path d="m16.6 18h-6"/>
+   <path d="m16.6 22h-6"/>
+   <path d="m29.6 18h-4.6"/>
+  </g>
+  <path d="M29.6 29.5H25" stroke="#6A5C5B" stroke-linecap="round"/>
+  <g stroke="#000" stroke-linecap="round">
+   <path d="M13.5807 20H11"/>
+   <path d="m22 10.5h-4"/>
+   <path d="M21.5807 21H19"/>
+   <path d="m22 19h-2"/>
+  </g>
+  <g stroke-linecap="round">
+   <path d="m22 27h-2" stroke="#6A5C5B"/>
+   <path d="M18.3 27.6667V25" stroke="#6A5C5B"/>
+   <path d="m18.3 12h-1e-4" stroke="#000"/>
+   <path d="m21.6 17h-1e-4" stroke="#000"/>
+  </g>
+  <g stroke="#6A5C5B">
+   <rect x="25.5" y="26.5" width="1" height="1" rx=".5" fill="#000"/>
+   <path d="m28 23v2.33" stroke-linecap="round"/>
+   <path d="m30 27h-2" stroke-linecap="round"/>
+  </g>
+  <path d="m29.6 25h-1e-4" stroke="#000" stroke-linecap="round"/>
+  <g stroke="#6A5C5B" stroke-linecap="round">
+   <path d="m29.6 25h-1e-4"/>
+   <path d="m26 24h-1e-4"/>
+   <path d="m21.6 25h-1e-4"/>
+   <path d="m21.6 23h-1e-4"/>
+  </g>
+  <g stroke="#000" stroke-linecap="round">
+   <path d="m28 20h-1e-4"/>
+   <path d="m17 21h-1e-4"/>
+   <path d="m12 19h-1e-4"/>
+   <path d="m15 19h-1e-4"/>
+   <path d="m14 21h-1e-4"/>
+  </g>
+  <path d="m10 22h21.029" stroke="#E4DDDA" stroke-width="2"/>
+  <path d="M31.4286 21H8.57143C8.25584 21 8 21.1683 8 21.3759V21.5638C8 21.7714 8.25584 21.9396 8.57143 21.9396H31.4286C31.7442 21.9396 32 21.7714 32 21.5638V21.3759C32 21.1683 31.7442 21 31.4286 21Z" fill="#D40000"/>
+  <path d="m31.429 21.094h-22.857c-0.23669 0-0.42857 0.1262-0.42857 0.2819v0.1879c0 0.1557 0.19188 0.2819 0.42857 0.2819h22.857c0.2367 0 0.4285-0.1262 0.4285-0.2819v-0.1879c0-0.1557-0.1918-0.2819-0.4285-0.2819z" stroke="#E91818"/>
+ </g>
+ <defs>
+  <linearGradient id="paint0_linear_19_152" x1="20" x2="20" y1="3.3333" y2="36.667" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#fff" offset="0"/>
+   <stop stop-color="#CCCAC6" offset="1"/>
+  </linearGradient>
+  <linearGradient id="paint1_linear_19_152" x1="20" x2="20" y1="3.4389" y2="36.458" gradientUnits="userSpaceOnUse">
+   <stop stop-color="#fff" offset="0"/>
+   <stop stop-color="#fff" stop-opacity="0" offset="1"/>
+  </linearGradient>
+  <clipPath id="clip0_19_152">
+   <rect width="40" height="40" fill="#fff"/>
+  </clipPath>
+ </defs>
+</svg>
