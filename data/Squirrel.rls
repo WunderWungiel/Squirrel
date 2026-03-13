@@ -98,8 +98,6 @@ rls_string qtn_generatorsettings_item4_string "Scale"
 
 rls_string qtn_generatorsettings_item5_string "Border"
 
-rls_string qtn_generatorsettings_item5_string "Border"
-
 rls_string qtn_generatorsettings_item6_string "Format"
 
 rls_string qtn_generatorsettings_item7_string "Light color"
