@@ -55,7 +55,7 @@ void CSquirrelDecoderView::ConstructL()
 {
 
     BaseConstructL(R_DECODER_VIEW);
-    iDecoderModel  = new (ELeave) CQRCDecoderModel;
+    iDecoderModel  = new (ELeave) CDecoderModel;
 }
 
 
@@ -91,7 +91,7 @@ void CSquirrelDecoderView::HandleCommandL( TInt aCommand )
     switch( aCommand )
     {
 	case ECmdOpenImage:
-	    SelectDriveRootL();
+	    SelectDriveRootL(ETrue);
 	    break;
 
 	case ECmdOpenQRCDataMenu:
@@ -138,6 +138,7 @@ void CSquirrelDecoderView::DoActivateL( const TVwsViewId& aPrevViewId,
 	const TDesC8& aCustomMessage)
 {
 
+    SetAppTitleL(NULL, R_DECODER_TITLE);
 
     if (aPrevViewId != NULL_VIEWID) iPrevViewId = aPrevViewId;
 
@@ -189,13 +190,14 @@ void CSquirrelDecoderView::DynInitMenuPaneL(TInt aResourceId, CEikMenuPane *aMen
 
 
 
-void CSquirrelDecoderView::SelectDriveRootL()
+void CSquirrelDecoderView::SelectDriveRootL(TBool aCalledFromMenu)
 {
     TBuf<3> drive;
     if (DriveSelectionL(drive, R_FILESELECTION_TITLE))
     {
 	SelectImageL(drive);
     }
+    else if (!aCalledFromMenu) { ActivatePrevViewL(); }
 }
 
 

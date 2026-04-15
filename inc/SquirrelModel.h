@@ -7,7 +7,7 @@
 #include <imageconversion.h>
 #include <aknwaitdialog.h>
 #include "ImageHandler.h"
-#include "QRCTools.h"
+#include "SquirrelEngine.h"
 #include "uicommons.h"
 
 // utility functions 
@@ -22,19 +22,19 @@ class CGeneratorSettings
 
 public:
 
-    static CGeneratorSettings* NewL(QRCEncoder* iQRCEncoder);
+    static CGeneratorSettings* NewL(QRCEncoder* aEncoder);
     virtual ~CGeneratorSettings();
     void StoreL(TBool aCreate=EFalse);
     TUid ImageFormat(TFileName &aFileName) const; 
 
 private: 
-    CGeneratorSettings(QRCEncoder* aQRCEncoder);
+    CGeneratorSettings(QRCEncoder* aEncoder);
     void ConstructL(); 
     void CreateStoreL();
     TBool RestoreL();
 
 public:
-    QRCEncoder* iQRCEncoder;
+    QRCEncoder* iEncoder;
     TInt iScale;
     TInt iBorder;
     TInt iImageFormatIndex;
@@ -84,7 +84,7 @@ private:
 	CBitmapDrawer *iCachedBitmapDrawer;
 	CFbsBitmap *iQRCBitmap;
 	CImageEncoder *iImageEncoder;
-	QRCEncoder iQRCEncoder;
+	QRCEncoder iEncoder;
 	HBufC8 *iUtf8Text;
 	CGeneratorSettings *iSettings;
 	CAknWaitDialog *iWaitDialog;
@@ -95,7 +95,7 @@ private:
 
 
 
-class CQRCDecoderModel: public CActive, NOCRUtils::MImageHandlerCallback
+class CDecoderModel: public CActive, NOCRUtils::MImageHandlerCallback
 {
     enum TState 
     {
@@ -110,8 +110,8 @@ class CQRCDecoderModel: public CActive, NOCRUtils::MImageHandlerCallback
     };
 
 public:
-	CQRCDecoderModel();
-	~CQRCDecoderModel();
+	CDecoderModel();
+	~CDecoderModel();
 
 	CViewContainer* SetupViewL(const TRect &aRect);
 	CViewContainer* GetView();
@@ -134,7 +134,7 @@ public:
 	
 private:
 
-	void LayoutViewControls();
+	void DrawCodeRect();
 
 	void DecodeFinishedL(const TDesC *aFileName=NULL);
 
@@ -158,31 +158,31 @@ private: // callbacks
 
         void ImageOperationCompleteL(TInt aError);
 private:
-	QRCDecoder iDecoder;
+	QRBARDecoder iDecoder;
+	DecoderResult iDecoderResult;
 	CViewContainer *iViewContainer;
 	CEikImage *iImageView;
-	CTextEdit /*CEikLabel*/ *iInfoView;
+	//CTextEdit /*CEikLabel*/ *iInfoView;
 	NOCRUtils::CImageHandler *iImageHandler;
 	CFbsBitmap *iImageBitmap; 
-	QRC iQRC;
 	CAknWaitDialog* iWaitDialog;
 	TState iState;
 	TBool iDataAvailable;
 };
 
 
-class QRCScanHelper
+class ScanHelper
 {
 
 public:
-    QRCScanHelper();
-    ~QRCScanHelper();
+    ScanHelper();
+    ~ScanHelper();
     TInt AllocateBuffer(const TInt aLen);
     TInt FindCode(CFbsBitmap* aBitmap);
     const TUint16* GetError();
-private:
+//private:
 
-    void DrawQRC(CFbsBitmap* aBitmap, QRC* aQRC);
+    //void DrawQRC(CFbsBitmap* aBitmap, QRC* aQRC);
 
 public:
     static void BGRBitmapToGray(CFbsBitmap* aBitmap, TUint8* &aBuffer);
@@ -191,7 +191,7 @@ public:
     CFbsBitGc* iGc;
 
 private:
-    QRCDecoder iDecoder;
+    QRBARDecoder iDecoder;
     TUint8* iBuffer; // gray data
     TInt iBufferSize;
 };

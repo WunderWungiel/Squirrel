@@ -104,6 +104,13 @@ RESOURCE AVKON_VIEW r_about_view
     cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
 }
 
+RESOURCE AVKON_VIEW r_dummy_view
+{
+    menubar = r_menubar;
+    cba = R_AVKON_SOFTKEYS_OPTIONS_BACK;
+}
+
+
 
 RESOURCE GRID r_mainview_grid
 {
@@ -138,6 +145,26 @@ RESOURCE GRID_STYLE r_mainview_grid_style
     width = 50;
 }
 
+RESOURCE LISTBOX r_mainview_listbox
+{
+    array_id = r_mainview_listbox_items;
+    flags = EAknListBoxSelectionList;
+}
+
+RESOURCE ARRAY r_mainview_listbox_items
+{
+    items = {
+
+    LBUF { txt = qtn_mainview_item1_string; },
+    LBUF { txt = qtn_mainview_item2_string; },
+    LBUF { txt = qtn_mainview_item3_string; },
+    LBUF { txt = qtn_mainview_item4_string; },
+    LBUF { txt = qtn_mainview_item5_string; }
+    };
+}
+
+
+
 RESOURCE LISTBOX r_aboutview_listbox
 {
     array_id = r_aboutview_listbox_items;
@@ -150,7 +177,8 @@ RESOURCE ARRAY r_aboutview_listbox_items
     LBUF { txt = qtn_aboutview_item1_string; },
     LBUF { txt = qtn_aboutview_item2_string; },
     LBUF { txt = qtn_aboutview_item3_string; },
-    LBUF { txt = qtn_aboutview_item4_string; }
+    LBUF { txt = qtn_aboutview_item4_string; },
+    LBUF { txt = qtn_aboutview_item5_string; }
     };	
 }
 
@@ -423,14 +451,15 @@ RESOURCE MENU_PANE r_generatorview_templates_menu
             command = ECmdSelectContact;
             txt = qtn_generatorview_templates_cmd2_string;
 	},
-	MENU_ITEM {
+    /*MENU_ITEM {
             command = ECmdSelectCalendar;
             txt = qtn_generatorview_templates_cmd3_string;
-	},
+    },
 	MENU_ITEM {
             command = ECmdSelectBookmark;
             txt = qtn_generatorview_templates_cmd4_string;
-	},
+    },
+    */
 	MENU_ITEM {
             command = ECmdSelectIP;
             txt = qtn_generatorview_templates_cmd5_string;
@@ -481,7 +510,7 @@ RESOURCE DIALOG r_qrcdata_menu_dialog
             control = AVKON_LIST_QUERY_CONTROL
                 {
                 listtype = EAknCtSinglePopupMenuListBox;
-                heading = "Data: ";
+		heading = qtn_datamenu_title1_string;
                 listbox = LISTBOX
                     {
                     flags = EAknListBoxSelectionList;
@@ -627,6 +656,41 @@ RESOURCE TBUF r_generator_msg3
     buf = qtn_generator_msg3_string;
 }
 
+RESOURCE TBUF r_app_title
+{
+    buf = qtn_caption_string;
+}
+
+RESOURCE TBUF r_decoder_title
+{
+    buf = qtn_decoder_title_string;
+}
+
+RESOURCE TBUF r_scanner_title
+{
+    buf = qtn_Scanner_title_string;
+}
+
+RESOURCE TBUF r_generator_title
+{
+    buf = qtn_generator_title_string;
+}
+
+RESOURCE TBUF r_history_title
+{
+    buf = qtn_history_title_string;
+}
+
+RESOURCE TBUF r_about_title
+{
+    buf = qtn_about_title_string;
+}
+
+RESOURCE TBUF r_settings_title
+{
+    buf = qtn_settings_title_string;
+}
+
 RESOURCE TBUF r_driveselection_title
 {
     buf = qtn_driveselection_title_string;
@@ -637,6 +701,17 @@ RESOURCE TBUF r_fileselection_title
 {
     buf = qtn_fileselection_title_string;
 }
+
+RESOURCE TBUF r_data_menu_title1
+{
+    buf = qtn_datamenu_title1_string;
+}
+
+RESOURCE TBUF r_data_menu_title2
+{
+    buf = qtn_datamenu_title2_string;
+}
+
 
 // ---------------------------------------------------------------------------- 
 //

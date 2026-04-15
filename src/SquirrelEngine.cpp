@@ -1,5 +1,5 @@
 
-#include "QRCTools.h"
+#include "SquirrelEngine.h"
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -9,6 +9,7 @@
 #include <string.h>
 #include <iconv.h>
 #include <wchar.h>
+#include <ctype.h> // isprint
 
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -20,28 +21,14 @@ void SaveBMData(const char *fp, int w, int h, int bpp, void *data)
     stbi_write_bmp(fp, w, h, bpp, data);
 }
 
-static const char* GetEncodingString(uint32_t index)
+static int HasNonPrintableChar(const char* data, int len)
 {
-    switch (index)
+    for (int i = 0; i < len; i++)
     {
-        case QUIRC_ECI_ISO_8859_1:   return "ISO-8859-1";
-        case QUIRC_ECI_IBM437:       return "IBM437";
-        case QUIRC_ECI_ISO_8859_2:   return "ISO-8859-2";
-        case QUIRC_ECI_ISO_8859_3:   return "ISO-8859-3";
-        case QUIRC_ECI_ISO_8859_4:   return "ISO-8859-4";
-        case QUIRC_ECI_ISO_8859_5:   return "ISO-8859-5";
-        case QUIRC_ECI_ISO_8859_6:   return "ISO-8859-6";
-        case QUIRC_ECI_ISO_8859_7:   return "ISO-8859-7";
-        case QUIRC_ECI_ISO_8859_8:   return "ISO-8859-8";
-        case QUIRC_ECI_ISO_8859_9:   return "ISO-8859-9";
-        case QUIRC_ECI_WINDOWS_874:  return "Windows-874";
-        case QUIRC_ECI_ISO_8859_13:  return "ISO-8859-13";
-        case QUIRC_ECI_ISO_8859_15:  return "ISO-8859-15";
-        case QUIRC_ECI_SHIFT_JIS:    return "SHIFT-JIS";
-        case QUIRC_ECI_UTF_8:        return "UTF-8";
-        default: break;
+	unsigned char c = data[i];
+	if (isprint(c) == 0) return 1;
     }
-    return "UTF-8";
+    return 0;
 }
 
 
@@ -93,20 +80,28 @@ static void Bin2HexWStr(const uint8_t *bin, size_t binLen, const wchar_t *outBuf
 }
 #endif 
 
-QRCDecoder::QRCDecoder()
+QRBARDecoder::QRBARDecoder()
 {
-    m_quirc = NULL;
+    m_scanner = NULL;
+    m_image = NULL;
     m_imgbuf = NULL;
     m_cachedPayload = NULL;
-    m_cachedPayloadSize = NULL;
-    m_imgbufLen = 0;
+    m_cachedPayloadSize = 0;
+    m_imgbufLen = 0;   
     SetError((const char*)NULL);
 }
 
-QRCDecoder::~QRCDecoder()
+QRBARDecoder::~QRBARDecoder()
 {
-    if (m_quirc) quirc_destroy(m_quirc);
-    m_quirc = NULL;
+    if (m_image){
+	zbar_image_destroy(m_image);
+	m_image = NULL;
+    }
+
+    if (m_scanner){
+	zbar_image_scanner_destroy(m_scanner);
+	m_scanner = NULL;
+    }
 
     if (m_cachedPayload) delete m_cachedPayload;
     m_cachedPayload = NULL;
@@ -114,34 +109,57 @@ QRCDecoder::~QRCDecoder()
     ReleaseImgBuf();
 }
 
-int QRCDecoder::Init()
+int QRBARDecoder::Init()
 {
-    if (m_quirc) quirc_destroy(m_quirc);
-    if (!(m_quirc = quirc_new()))
+
+    if (m_scanner){
+	zbar_image_scanner_destroy(m_scanner);
+    }
+
+    m_scanner = zbar_image_scanner_create();
+    zbar_image_scanner_set_config(m_scanner, ZBAR_NONE, ZBAR_CFG_BINARY, 1);
+    zbar_image_scanner_set_config(m_scanner, ZBAR_NONE, ZBAR_CFG_ENABLE, 1);
+   
+    if (!m_scanner)
     {
 	SetError(strerror(ENOMEM)); 
+	return 0;
+    }
+
+    if (m_image) zbar_image_destroy(m_image);
+
+    m_image = zbar_image_create();
+    if (!m_image)
+    {
+	SetError(strerror(ENOMEM)); 
+	return 0;
+    }
+
+    zbar_image_set_format(m_image, zbar_fourcc('Y', '8', '0', '0'));
+    return 1;
+}
+
+int QRBARDecoder::Init(int w, int h)
+{
+    if (Init())
+    {
+	if (!m_image){
+	    m_image = zbar_image_create();
+	    zbar_image_set_format(m_image, zbar_fourcc('Y', '8', '0', '0'));
+	}
+	zbar_image_set_size(m_image, w, h);
+    }
+
+    if (!m_image || !m_scanner)
+    {
+	SetError(strerror(ENOMEM));
 	return 0;
     }
     return 1;
 }
 
-int QRCDecoder::Init(int w, int h)
-{
-    int ret = 0;
-    if (Init())
-    {
-	if ( quirc_resize(m_quirc, w, h) == -1)
-	{
-	    SetError(strerror(ENOMEM));
-	}
-	else { ret = 1; }
-    }
-       
-    return ret;
-}
 
-
-void QRCDecoder::ReleaseImgBuf()
+void QRBARDecoder::ReleaseImgBuf()
 {
 
     if (m_imgbuf) stbi_image_free(m_imgbuf);
@@ -149,36 +167,36 @@ void QRCDecoder::ReleaseImgBuf()
 }
 
 
-int QRCDecoder::DecodeImageData(void* data, size_t len)
+int QRBARDecoder::DecodeImageData(void* data, size_t len)
 {
 
-    if (!m_quirc)
-    {
-	if (!Init()) return -1;
+    if (!m_scanner || !m_image){
+	SetError(strerror(EINVAL));
+	return -1;
     }
-   
-    memcpy(quirc_begin(m_quirc, NULL, NULL), data,  len); 
-
-    quirc_end(m_quirc);
-
-    return (m_numCodes = quirc_count(m_quirc));
+    
+    zbar_image_set_data(m_image, data, len, NULL);
+    return zbar_scan_image(m_scanner, m_image);
 }
 
 
-int QRCDecoder::DecodeImageData(void* data, int w, int h)
+int QRBARDecoder::DecodeImageData(void* data, int w, int h)
 {
+    if (!m_scanner || !m_image)
+    {
+	if (!Init(w, h)) return -1;
+    }
+    else 
+    {
+	zbar_image_set_size(m_image, w, h);
+    }
 
-    if (!m_quirc && !Init()) return -1;
-
-    if (quirc_resize(m_quirc, w, h) < 0) return -1;
-
-    memcpy(quirc_begin(m_quirc, NULL, NULL), data, w*h);   
-    quirc_end(m_quirc);
-    return (m_numCodes = quirc_count(m_quirc));
+    //SaveBMData("D:\\1bpp.bmp", w, h, 1, data);
+    return DecodeImageData(data, w*h);
 }
 
 
-int QRCDecoder::DecodeImageData(void* data, int w, int h, int bpp)
+int QRBARDecoder::DecodeImageData(void* data, int w, int h, int bpp)
 {
 
     size_t len = w*h;
@@ -201,7 +219,7 @@ int QRCDecoder::DecodeImageData(void* data, int w, int h, int bpp)
 }
 
 
-int QRCDecoder::DecodeImage(const char* fp)
+int QRBARDecoder::DecodeImage(const char* fp)
 {
     int w, h, bpp;
 
@@ -218,7 +236,7 @@ int QRCDecoder::DecodeImage(const char* fp)
 }
 
 
-int QRCDecoder::DecodeImage(const wchar_t *fp)
+int QRBARDecoder::DecodeImage(const wchar_t *fp)
 {
     int w, h, bpp;
     FILE* f;
@@ -242,33 +260,136 @@ int QRCDecoder::DecodeImage(const wchar_t *fp)
     return DecodeImageData(m_imgbuf, w, h);
 }
 
-int QRCDecoder::ExtractCode(int index, QRC *qrc)
+
+void QRBARDecoder::GetCodePosition(const zbar_symbol_t *symbol, DecoderResult* res)
 {
-    if ( !m_quirc || (index > m_numCodes || index < 0))
+    unsigned int loc_count = zbar_symbol_get_loc_size(symbol);
+    loc_count = loc_count >= 4 ? 4 : 0;
+    for (unsigned int i = 0; i < loc_count; i++)
+    {
+	int x = zbar_symbol_get_loc_x(symbol, i); 
+	int y = zbar_symbol_get_loc_y(symbol, i);
+	res->code_pos[i][0] = x;
+	res->code_pos[i][1] = y;
+    }
+}
+
+int QRBARDecoder::ExtractCode(void* data, int w, int h, DecoderResult* res)
+{
+    if (!m_scanner || !m_image)
+    {
+	if (!Init(w, h)) return -1;
+    }
+    else 
+    {
+	zbar_image_set_size(m_image, w, h);
+    }
+
+    zbar_image_set_data(m_image, data, w*h, NULL);
+    zbar_image_scanner_set_config(m_scanner, ZBAR_NONE, ZBAR_CFG_BINARY, 1);
+
+
+    int syms = zbar_scan_image(m_scanner, m_image);
+    res->has_qrcode = 0;  
+    res->payload_type = PL_TEXT;
+
+    if (syms > 0)
+    {
+	const zbar_symbol_t *symbol = zbar_image_first_symbol(m_image);
+	
+	if (!symbol) goto err;
+
+	res->has_qrcode = (zbar_symbol_get_type(symbol) == ZBAR_QRCODE);
+
+	const char* bin = zbar_symbol_get_data(symbol);
+	int bin_len = zbar_symbol_get_data_length(symbol);
+	
+	if (res->has_qrcode) GetCodePosition(symbol, res);
+
+	// HACK: rescan in order to detect if the payload is binary or UTF-8 text.
+	zbar_image_scanner_set_config(m_scanner, ZBAR_NONE, ZBAR_CFG_BINARY, 0);
+	if (zbar_scan_image(m_scanner, m_image) < 1) 
+	{
+	    // no UTF-8 ... iconv failed 
+	    if (res->has_qrcode)
+	    {
+		res->payload_type = PL_BINARY;
+		res->payload = bin;
+		res->payload_len = bin_len;
+		return syms;
+	    }
+	    else{
+		goto err;
+	    }
+	}
+
+	symbol = zbar_image_first_symbol(m_image);	
+	if (!symbol) goto err;
+ 
+	const char* text = zbar_symbol_get_data(symbol);
+	int text_len = zbar_symbol_get_data_length(symbol);
+	
+
+	res->payload_len = text_len;
+	res->payload = text;
+	if (res->has_qrcode)
+	{
+	    if ( (text_len != bin_len) || HasNonPrintableChar(bin, bin_len) )
+	    {
+		res->payload_type = PL_BINARY;
+		res->payload = bin;
+		res->payload_len = bin_len;
+	    }
+
+	}
+
+    }
+
+    else if (syms == -1) goto err;
+
+    return syms;
+
+    err:    
+	SetError(strerror(errno));
+	return -1;
+    
+}
+
+
+
+int QRBARDecoder::ExtractCode(int index, DecoderResult *res)
+{
+    if (!m_image || !m_scanner)
     {
 	SetError(strerror(EINVAL));
 	return 0;
     }
-
-    quirc_extract(m_quirc, index, &qrc->code);  
     
-    qrc->error = quirc_decode(&qrc->code, &qrc->data);
+    const zbar_symbol_t *symbol = zbar_image_first_symbol(m_image);
+    
+    res->has_qrcode = 0;
+    res->payload_type = PL_TEXT;
+    
+    int i = 0;
+    for (; symbol; symbol = zbar_symbol_next(symbol)) {
+	if (i == index)
+	{
+	    res->has_qrcode = ( zbar_symbol_get_type(symbol) == ZBAR_QRCODE);
 
-    if (qrc->error  == QUIRC_ERROR_DATA_ECC)
-    {
-        quirc_flip(&qrc->code);
-        qrc->error = quirc_decode(&qrc->code, &qrc->data);
+	    res->payload_len = zbar_symbol_get_data_length(symbol);
+
+	    res->payload = zbar_symbol_get_data(symbol);
+	    break;
+	}
+	i++;
     }
 
-    if (qrc->error)
-    {
-	SetError(quirc_strerror(qrc->error));
-	return 0;
-    }
     return 1;
 }
 
-int QRCDecoder::AllocateCachedPayload(const int len)
+
+
+int QRBARDecoder::AllocateCachedPayload(const int len)
 {
     if (m_cachedPayload)
     {
@@ -287,7 +408,7 @@ int QRCDecoder::AllocateCachedPayload(const int len)
     return 1;
 }
 
-int QRCDecoder::ConvertPayloadData(const char *inEnc, const char *outEnc, char *inBuf, size_t inBufLen)
+int QRBARDecoder::ConvertPayloadData(const char *inEnc, const char *outEnc, char *inBuf, size_t inBufLen)
 {
     int len;
 
@@ -354,11 +475,11 @@ struct PLTypeCheck {
 
 #define URL_TC(p) {p, NULL, PL_URL}
 
-void QRCDecoder::ParsePayloadType(QRC *qrc)
+void QRBARDecoder::ParsePayloadType(DecoderResult  *qrc)
 {
-    struct quirc_data data = qrc->data;
-    size_t payloadLen = (size_t) data.payload_len;
-    const char* payload = (const char*) data.payload;
+    
+    size_t payloadLen = (size_t) qrc->payload_len;
+    const char* payload = qrc->payload;
     qrc->payload_type = PL_TEXT;
 
     static PLTypeCheck typeChecks[] = {
@@ -398,62 +519,58 @@ void QRCDecoder::ParsePayloadType(QRC *qrc)
     }
 }
 
-const char* QRCDecoder::ParseAndEncodePayload(QRC *qrc, int &outLen, const char* outEnc)
+const char* QRBARDecoder::EncodePayload(DecoderResult* qrc, int &outLen, const char* outEnc)
 {
-    struct quirc_data data = qrc->data;
-    size_t payloadLen = (size_t) data.payload_len;
-    char* payload = (char*) data.payload;
-
-    ParsePayloadType(qrc);
+    size_t payloadLen = (size_t) qrc->payload_len;
+    char* payload = (char*) qrc->payload;
 
     if (!AllocateCachedPayload((payloadLen + 1)*4)) return NULL;
 
-    const char* cs =  GetEncodingString(data.eci);
- 
-    if (data.data_type == QUIRC_DATA_TYPE_BYTE)
-    {
-	// could be text.
-	TRY_CONVERT_PAYLOAD(cs)
-	// maybe binary ? try convert to hex string.
-	qrc->payload_type = PL_BINARY;
-#ifdef __SYMBIAN32__
-	
-	PAYLOAD2HEX()
-#endif
-    }
-
-    else if (data.data_type == QUIRC_DATA_TYPE_KANJI)
-    {
-	TRY_CONVERT_PAYLOAD("SHIFT-JIS")
-	TRY_CONVERT_PAYLOAD(cs)
-    }
-
-    if ( !strcasecmp(cs, "UTF-8") && !strcasecmp(outEnc, cs)) return payload; // no conversation required
-   
-
-    TRY_CONVERT_PAYLOAD(cs)
+    TRY_CONVERT_PAYLOAD("UTF-8")
     return NULL;
 }
 
 
-void QRCDecoder::SetError(const char* error)
+const char* QRBARDecoder::ParseAndEncodePayload(DecoderResult *qrc, int &outLen, const char* outEnc)
+{
+    size_t payloadLen = (size_t) qrc->payload_len;
+    char* payload = (char*) qrc->payload;
+    
+    if (!AllocateCachedPayload((payloadLen + 1)*4)) return NULL;
+
+    if (qrc->payload_type == PL_BINARY)
+    {
+	PAYLOAD2HEX()
+    }
+
+    else
+    {
+	ParsePayloadType(qrc);
+	TRY_CONVERT_PAYLOAD("UTF-8");
+    }
+    
+    return NULL;
+}
+
+
+void QRBARDecoder::SetError(const char* error)
 {
     memset(m_error, 0, sizeof(m_error));   
     if (error) strncpy(m_error, error, sizeof(m_error)-1);
 }
 
-void QRCDecoder::SetError(char* error)
+void QRBARDecoder::SetError(char* error)
 {
     SetError((const char*)error);
 }
 
-const char* QRCDecoder::GetError()
+const char* QRBARDecoder::GetError()
 {
     if (strlen(m_error) == 0) return NULL;
     return m_error;
 }
 
-const wchar_t* QRCDecoder::GetWError()
+const wchar_t* QRBARDecoder::GetWError()
 {
     const char* error = GetError();
     if (!error) return NULL;
@@ -467,6 +584,7 @@ const wchar_t* QRCDecoder::GetWError()
     }
     return werror;
 }
+
 
 
 uint8_t QRCEncoder::QrcBuf[qrcodegen_BUFFER_LEN_MAX];

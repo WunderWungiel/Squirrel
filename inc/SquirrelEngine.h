@@ -1,7 +1,11 @@
-#ifndef __QRCTOOLS_h__
-#define __QRCTOOLS_h__
+#ifndef __SQUIRRELENGINE_H__
+#define __SQUIRRELENGINE_H__
 
-#include "quirc.h"
+
+extern "C" {
+#include <zbar.h>
+}
+
 #include "qrcodegen.h"
 
 void SaveBMData(const char* fp, int w, int h, int bpp, void* data);
@@ -18,37 +22,36 @@ typedef enum PLType
     PL_GEO_LOCATION,	
     PL_SMS,	
     PL_WIFI,	
-    PL_TEXT, // plain text
+    PL_TEXT,
     PL_BINARY
 } PLType;
 
-// wraps the necessary C structures into a single container.
-struct QRC
+
+struct DecoderResult
 {
-    struct quirc_code code;
-    struct quirc_data data;
-    quirc_decode_error_t error;
+    const char *payload; 
+    int payload_len;
     PLType payload_type;
+    int has_qrcode; 
+    int code_pos[4][2];
 };
 
-
-class QRCDecoder
+class QRBARDecoder
 {
 
 public:
-	QRCDecoder();
-	~QRCDecoder();
+	QRBARDecoder();
+	
+	~QRBARDecoder();
 
 	// setup the decoder states
 	int Init();
 
-	// create or resize the quirc buffer
+	// create or resize the image
 	int Init(int w, int h);
 
-	/******
-	 * used for decoding fixed size images to avoid memory reallocation.
-	 * the data is copied into the internal buffer that was allocated via Init(w, h)
-	*****/
+	// used for decoding fixed size images, to avoid memory reallocation.
+	// Init(w, h) should be called before using this function
 	int DecodeImageData(void* data, size_t len);
 
 	// decode image data (1bpp).
@@ -60,11 +63,39 @@ public:
 	int DecodeImage(const char *fp);
 	int DecodeImage(const wchar_t *fp);
 
-	// find qrc code
-	int ExtractCode(int index, QRC *qrc);
+	/** 
+	 * decode image data and extract the payload
+	 * then try to detect some information
+	 *
+	 * if qrcode data found check the type if text or binary.
+
+	 * those information are stored in the DecoderResult.
+
+	 * returns the number of codes have be found , -1 if some error occurs.
+	 *
+	 * the function does extract only one code.
+	 **/
+
+	int ExtractCode(void* data, int w, int h, DecoderResult* res);
+
+
+	/** 
+	 * extract the payload from the current decoded image.
+	 *
+	 * returns the number of codes have be found , -1 if some error occurs.
+	 *
+	 **/
+
+	int ExtractCode(int index, DecoderResult* res);
+
+	// encode payload data into specific character encoding
+
+	const char* EncodePayload(DecoderResult* qrc, int &outLen, const char* outEnc);
+
 
 	// parse payload type and encode its data into specific character encoding
-	const char* ParseAndEncodePayload(QRC* qrc, int &outLen, const char* outEnc);
+    
+	const char* ParseAndEncodePayload(DecoderResult* qrc, int &outLen, const char* outEnc);
 
 	// functions for error handling
 	void SetError(const char *error);
@@ -73,6 +104,9 @@ public:
 	const wchar_t* GetWError();
 
 private:
+	
+	void GetCodePosition(const zbar_symbol_t *symbol, DecoderResult* res);
+
 	// functions for dealing with cached buffers
 	void ReleaseImgBuf();
 
@@ -82,11 +116,11 @@ private:
 	int ConvertPayloadData(const char *inEnc, const char *outEnc, char *inBuf, size_t inBufLen);
 	
 	// very generic, not an actual parser.
-	void ParsePayloadType(QRC *qrc);
+	void ParsePayloadType(DecoderResult *qrc);
 
 private:
-	struct quirc *m_quirc;
-	int m_numCodes;
+	zbar_image_scanner_t *m_scanner;
+	zbar_image_t *m_image;
 	uint8_t *m_imgbuf;
 	size_t m_imgbufLen;
 	char* m_cachedPayload;
@@ -123,4 +157,4 @@ private:
 };
 
 
-#endif // __QRCTOOLS_h__
+#endif // __SQUIRRELENGINE_H__

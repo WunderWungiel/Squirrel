@@ -20,6 +20,7 @@ mksisx:
 
 depoly:
 	renv send "sis/$(SIS)" "C:\\$(SIS)"
+	renv send "sis/$(SIS)x" "C:\\$(SIS)x"
 run:
 	renv send "$(EXE_FP)" "C:\\sys\\bin\\$(EXE)"
 	renv start -w $(EXE)

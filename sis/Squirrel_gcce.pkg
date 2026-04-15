@@ -32,6 +32,7 @@
 ;<source> <destination>
 "$(EPOCROOT)epoc32\release\$(PLATFORM)\$(TARGET)\Squirrel.exe"		-"!:\sys\bin\Squirrel.exe"
 "$(EPOCROOT)epoc32\data\z\resource\apps\Squirrel.rsc"		-"!:\resource\apps\Squirrel.rsc"
+"$(EPOCROOT)epoc32\data\z\resource\apps\Squirrel.r14"		-"!:\resource\apps\Squirrel.r14"
 "$(EPOCROOT)epoc32\data\z\private\10003a3f\apps\Squirrel_reg.rsc"	-"!:\private\10003a3f\import\apps\Squirrel_reg.rsc"
 "$(EPOCROOT)epoc32\data\z\resource\apps\Squirrel.mif" -"!:\resource\apps\Squirrel.mif"
 "$(EPOCROOT)epoc32\data\z\resource\apps\Squirrel_ui.mif" -"!:\resource\apps\Squirrel_ui.mif"

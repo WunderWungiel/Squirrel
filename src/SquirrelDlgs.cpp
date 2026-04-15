@@ -11,6 +11,8 @@
 #include <cpbkviewstate.h>
 #include <cpbkcontacteditordlg.h>
 #include <cpbkcontactitem.h>
+#include <vcard.h>
+#include <versit.h>
 #include "SquirrelDlgs.h"
 #include "Squirrel.rsg"
 #include "Squirrel.hrh"
@@ -49,13 +51,13 @@ void CGeneratorSettingsDlg::PreLayoutDynInitL()
 {
     CAknForm::PreLayoutDynInitL();
 
-    SetIntValue(EGeneratorSettingsItem1, iSettings->iQRCEncoder->MinVersion());
+    SetIntValue(EGeneratorSettingsItem1, iSettings->iEncoder->MinVersion());
 
-    SetIntValue(EGeneratorSettingsItem2, iSettings->iQRCEncoder->MaxVersion());
+    SetIntValue(EGeneratorSettingsItem2, iSettings->iEncoder->MaxVersion());
 
 
     CAknPopupFieldText* eclComboBox = static_cast<CAknPopupFieldText*>(Control(EGeneratorSettingsItem3));
-    eclComboBox->SetCurrentValueIndex(iSettings->iQRCEncoder->Ecl());
+    eclComboBox->SetCurrentValueIndex(iSettings->iEncoder->Ecl());
 
     SetIntValue(EGeneratorSettingsItem4, iSettings->iScale);
 
@@ -78,6 +80,7 @@ TBool CGeneratorSettingsDlg::OkToExitL(TInt aButtonId)
 
 TBool CGeneratorSettingsDlg::ShowLD()
 {
+    SetAppTitleL(NULL, R_SETTINGS_TITLE);
     return ExecuteLD(R_GENERATOR_SETTINGS_FORM_DIALOG);
 }
 
@@ -93,7 +96,7 @@ void CGeneratorSettingsDlg::UpdateSettingsL()
 
     TInt ecl = eclComboBox->CurrentValueIndex();
 
-    iSettings->iQRCEncoder->SetParams(ecl, minVersion, maxVersion); 
+    iSettings->iEncoder->SetParams(ecl, minVersion, maxVersion); 
 
     iSettings->iScale = GetIntValue(EGeneratorSettingsItem4);
 
@@ -253,7 +256,7 @@ void CContactSelectionDlg::ReadContactsL()
             CContactTextField* lastName = lastNameField.TextStorage();
             lastNameBuf = lastName->Text().AllocLC();
         }
- 
+
         TInt len(0);
 
         if (firstNameBuf) len += firstNameBuf->Length();
@@ -302,6 +305,41 @@ void CContactSelectionDlg::ReadContactsL()
     CleanupStack::Pop(aSortOrder);
 }
 
+void CContactSelectionDlg::DiscardPhotoFieldL(CBufFlat* aVCardBuf)
+{
+
+    CBufFlat* buf = CBufFlat::NewL(4);
+    CleanupStack::PushL(buf);
+    buf->InsertL(0, aVCardBuf->Ptr(0));
+   
+    RBufReadStream stream(*buf);
+    CleanupClosePushL(stream);	
+    CParserVCard* parser = CParserVCard::NewL();
+    CleanupStack::PushL(parser);
+    parser->InternalizeL(stream);
+    CArrayPtr<CParserProperty>* props = parser->ArrayOfProperties(EFalse);
+
+    for (TInt i=0; i < props->Count(); i++)
+    {
+	CParserProperty* p = (*props)[i];
+	if (p && (p->Name() == KVersitTokenPHOTO))
+	{
+	    props->Delete(i);
+	    aVCardBuf->Reset();
+	    RBufWriteStream stream2(*aVCardBuf);
+	    CleanupClosePushL(stream2);	
+	    parser->ExternalizeL(stream2);
+	    CleanupStack::PopAndDestroy(&stream2);
+	    break;
+	}
+    }
+
+    CleanupStack::PopAndDestroy(buf);
+    CleanupStack::PopAndDestroy(&stream);
+    CleanupStack::PopAndDestroy(parser);
+    
+}
+
 TPtr8 CContactSelectionDlg::GetVCardL(const TInt aIndex)
 {
 
@@ -309,7 +347,16 @@ TPtr8 CContactSelectionDlg::GetVCardL(const TInt aIndex)
 
     CContactIdArray* idArray = CContactIdArray::NewL();
     CleanupStack::PushL(idArray);
-	
+  
+    // find photo field
+    CContactItem* contact = iContactDb->OpenContactL((*contacts)[aIndex]);
+    CleanupStack::PushL(contact);
+    CContactItemFieldSet& fieldSet = contact->CardFields();
+    TInt findpos(fieldSet.Find(KUidContactFieldPicture));
+    TBool hasPhoto = (findpos > -1) || (findpos >= fieldSet.Count());
+    CleanupStack::PopAndDestroy(contact);
+
+
     idArray->AddL((*contacts)[aIndex]);
 	
     if (!iVCardsBuf) iVCardsBuf = CBufFlat::NewL(4);
@@ -319,16 +366,18 @@ TPtr8 CContactSelectionDlg::GetVCardL(const TInt aIndex)
     CleanupClosePushL(outputStream);
   
 
-    TInt opts = CContactDatabase::EIncludeX |CContactDatabase::ETTFormat;
+    TInt opts = /*CContactDatabase::EIncludeX |*/CContactDatabase::ETTFormat;
     TUid formatUid = TUid::Uid(KVersitEntityUidVCard);  
     iContactDb->ExportSelectedContactsL(formatUid, *idArray, outputStream, opts);  
     
     outputStream.CommitL();        
     
-    CleanupStack::PopAndDestroy(); // Close outputStream.  
+    CleanupStack::PopAndDestroy(&outputStream); 
     
-    CleanupStack::PopAndDestroy(); //idArray.
-    
+    CleanupStack::PopAndDestroy(idArray);
+
+    // discard photo field
+    if ( hasPhoto) DiscardPhotoFieldL(iVCardsBuf);
     return iVCardsBuf->Ptr(0);
 }
 

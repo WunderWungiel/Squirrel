@@ -142,7 +142,7 @@ void CImageHandler::LoadFileAndScaleL(RFs& aFs, const TFileName& aFileName,
     LoadFileL(aFs, aFileName, aSelectedFrame);
 }
 
-void CImageHandler::ScaleL(const TSize &aSize)
+void CImageHandler::ScaleL(const TSize &aSize, TBool aMaintainAspectRatio)
 {
     __ASSERT_ALWAYS(!IsActive(),User::Invariant());
     if ( iScaler )
@@ -166,7 +166,7 @@ void CImageHandler::ScaleL(const TSize &aSize)
     iScaler = NULL;
     iScaler = CBitmapScaler::NewL();
     iState = EScalingImage;
-    iScaler->Scale(&iStatus, *iBitmap, *iScaledBitmap, EFalse/*ETrue*/);
+    iScaler->Scale(&iStatus, *iBitmap, *iScaledBitmap, aMaintainAspectRatio);
 
     SetActive();
 }

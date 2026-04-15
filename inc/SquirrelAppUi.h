@@ -21,6 +21,7 @@ class CSquirrelHistoryView;
 class CSquirrelScannerView;
 class CSquirrelGeneratorView;
 class CSquirrelAboutView;
+class CSquirrelDummyView;
 
 // CLASS DECLARATION
 /**
@@ -92,12 +93,13 @@ private:
 private:
 	// Data
 
-	CSquirrelAppView *iMainView;
-	CSquirrelDecoderView *iDecoderView;
-	CSquirrelHistoryView *iHistoryView;
-	CSquirrelScannerView *iScannerView;
-	CSquirrelGeneratorView *iGeneratorView;
-	CSquirrelAboutView *iAboutView;
+	CSquirrelAppView	*iMainView;
+	CSquirrelDecoderView	*iDecoderView;
+	CSquirrelHistoryView	*iHistoryView;
+	CSquirrelScannerView	*iScannerView;
+	CSquirrelGeneratorView	*iGeneratorView;
+	CSquirrelAboutView	*iAboutView;
+	CSquirrelDummyView	*iDummyView;
 
 };
 

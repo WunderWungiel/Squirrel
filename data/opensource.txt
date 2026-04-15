@@ -1,10 +1,9 @@
 Squirrel was built using the following open-source libraries.
-
 Thanks a lot to the developers of these projects!
 
-• libquirc
+• zbar v0.23.93 (Bar Code Reader)
 
-https://github.com/dlbeer/quirc 
+https://github.com/mchehab/zbar
 
 • QR Code generator library
 
@@ -15,25 +14,7 @@ https://www.nayuki.io/page/qr-code-generator-library
 https://github.com/nothings/stb
 http://nothings.org/stb
 
-• quirc -- QR-code recognition library
-Copyright (C) 2010-2012 Daniel Beer <dlbeer@gmail.com> 
-
-ISC License
-=========== 
-
-Permission to use, copy, modify, and/or distribute this software for
-any purpose with or without fee is hereby granted, provided that the
-above copyright notice and this permission notice appear in all
-copies. 
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL
-WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE
-AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL
-DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR
-PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
-TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
+######### LICENSES #########
 
 
 • QR Code generator library 
@@ -78,3 +59,35 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+• zbar v0.23.93 (Bar Code Reader)
+
+The ZBar Bar Code Reader is Copyright (C) 2007-2011 Jeff Brown
+ <spadix@users.sourceforge.net>
+The QR Code reader is Copyright (C) 1999-2009 Timothy B. Terriberry
+ <tterribe@xiph.org>
+
+You can redistribute this library and/or modify it under the terms of the GNU
+ Lesser General Public License as published by the Free Software Foundation;
+ either version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License along
+ with this library; if not, write to the Free Software Foundation, Inc.,
+ 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+
+ISAAC is based on the public domain implementation by Robert J. Jenkins Jr.,
+ and is itself public domain.
+
+Portions of the bit stream reader are copyright (C) The Xiph.Org Foundation
+ 1994-2008, and are licensed under a BSD-style license.
+
+The Reed-Solomon decoder is derived from an implementation (C) 1991-1995 Henry
+ Minsky (hqm@ua.com, hqm@ai.mit.edu), and is licensed under the LGPL with
+ permission.
+

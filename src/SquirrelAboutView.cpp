@@ -117,7 +117,7 @@ void CSquirrelAboutView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 	TUid /*aCustomMessageId*/,
 	const TDesC8& /*aCustomMessage*/ )
 {
-
+    SetAppTitleL(NULL, R_ABOUT_TITLE);
     iListbox = new (ELeave) TListBox<DOUBLE_STYLE>;
     iListbox->ConstructL(NULL, ClientRect(), R_ABOUTVIEW_LISTBOX);
     iListbox->SetObserver(this);
@@ -150,7 +150,7 @@ void CSquirrelAboutView::HandleListBoxEventL(CEikListBox* aListBox , TListBoxEve
     {
 
 	TInt itemIndex = iListbox->Listbox()->CurrentItemIndex();
-	if (itemIndex == 3) ShowOSNoticeL();
+	if (itemIndex == 4) ShowOSNoticeL();
 
     }
 }

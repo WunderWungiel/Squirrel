@@ -3,6 +3,8 @@
 
 #include <aknlists.h>
 #include <eiktxlbm.h>
+#include <eikclb.h>
+#include <eikclbd.h>
 #include <eiklbo.h>
 #include <akniconarray.h>
 #include <akniconutils.h>
@@ -27,9 +29,12 @@
 // TODO: add some comments
 
 
-TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId, const TBool aShowDZ=EFalse);
+TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId,
+	const TBool aShowDZ=EFalse, const TBool aShowReadOnly=EFalse);
 
 void ErrorNoteL(const TDesC *aText, TInt aResourceId=0);
+
+void SetAppTitleL(const TDesC *aTitle, TInt aResourceId=0);
 
 class CBitmapDrawer
 {
@@ -171,6 +176,7 @@ class CTextEdit : public CEikRichTextEditor
 
 #define  SINGLE_STYLE CAknSingleStyleListBox
 #define  SINGLE_GFX_STYLE CAknSingleGraphicStyleListBox
+#define  SINGLE_LARGE_STYLE CAknSingleLargeStyleListBox
 #define  DOUBLE_STYLE CAknDoubleStyleListBox
 
 template <class T>
@@ -274,17 +280,16 @@ class TListBox: public CCoeControl
 
 	}
 
-	void AddIconL(const TDesC& aFilePath, TInt aBitmapId, TInt aMaskId=-1)
+	void AddIconL(CArrayPtr<CGulIcon>* aIconArray , const TDesC& aFilePath, TInt aBitmapId, TInt aMaskId=-1)
 	{
 
-	    CArrayPtr<CGulIcon>* iconArray = iListbox->ItemDrawer()->FormattedCellData()->IconArray();
-	    if (!iconArray) return;
+	    if (!aIconArray) return;
 
 	    if (aMaskId == -1) aMaskId = aBitmapId+1;
 
 	    CFbsBitmap *bm, *mask;
 	    AknIconUtils::CreateIconL(bm, mask, aFilePath, aBitmapId, aMaskId);
-	    iconArray->AppendL(CGulIcon::NewL(bm, mask));
+	    aIconArray->AppendL(CGulIcon::NewL(bm, mask));
 
 	}
 
@@ -346,16 +351,18 @@ class CGridListBox: public CCoeControl
 public:
 	CAknGrid* Grid() {return iGrid;};
 
-	void SetupGrid(TInt aNumOfItems, TInt aGridColumns, TInt aGridRows,TBool aWithIcons=EFalse, TBool aDefaultLayout=ETrue);	
-	   
-	void SetupGfxCell(TInt aIndex=0);	
+	void SetupGrid(TInt aNumOfItems, TInt aGridColumns, TInt aGridRows,TBool aWithIcons=EFalse);
+	void SetupGfxGrid(TInt aNumOfItems);
+
+	void SetupGridIconsL(TInt aNumOfItems);	
+
+	void SetupGfxCellL(TInt aIndex=0);	
     
 	void SetupTextCell(TInt aIndex=1, TInt aBaseline=-1);
  
 	void AddItemL(const TDesC& item, TInt aIndex=-1);
 
 	void AddIconL(const TDesC& aFilePath, TInt aBitmapId, TInt aMaskId=-1);
-
 
 	void RemoveItemsL();
 
@@ -385,8 +392,7 @@ public:
 
 
     private: // own functions
-	void SetupGridLayout();
-	void SetDefaultGridLayout();
+	void SetDefaultGridLayout(TBool aWithIcons);
 
     private: // data
 	const CFont *iFont;

@@ -42,26 +42,26 @@ static TInt CopyBitmap(CFbsBitmap* aFrame, CFbsBitmap* &aFrameCopy)
   return err;
 }
 
-// implementation of CQRCScanView
+// implementation of CCamScanView
 
-CQRCScanView* CQRCScanView::NewL(const TRect& aRect, const CCoeControl* aParent)
+CCamScanView* CCamScanView::NewL(const TRect& aRect, const CCoeControl* aParent)
 {
-    CQRCScanView* self = CQRCScanView::NewLC(aRect, aParent);
+    CCamScanView* self = CCamScanView::NewLC(aRect, aParent);
     CleanupStack::Pop(self);
     return self;
 }
 
-CQRCScanView* CQRCScanView::NewLC(const TRect& aRect,const CCoeControl* aParent)
+CCamScanView* CCamScanView::NewLC(const TRect& aRect,const CCoeControl* aParent)
 {
-    CQRCScanView* self = new (ELeave) CQRCScanView;
+    CCamScanView* self = new (ELeave) CCamScanView;
     CleanupStack::PushL(self );
     self->ConstructL(aRect, aParent);
     return self;
 }
 
-void CQRCScanView::ConstructL(const TRect& aRect ,const CCoeControl* aParent)
+void CCamScanView::ConstructL(const TRect& aRect ,const CCoeControl* aParent)
 {
-    iViewFinderSize = /*TSize(177, 177);*/aRect.Size();
+    iViewFinderSize = aRect.Size();
 
     if (aParent) CreateWindowL(aParent);
     else CreateWindowL();
@@ -74,21 +74,21 @@ void CQRCScanView::ConstructL(const TRect& aRect ,const CCoeControl* aParent)
 }
 
 
-CQRCScanView::CQRCScanView()
+CCamScanView::CCamScanView()
 {
-    iCameraIndex = -1;
+    iCameraIndex = 0;
     iError = KErrNone;
     iFoundCode = EFalse;
     iViewFinderActivated = EFalse;
 }
 
-CQRCScanView::~CQRCScanView()
+CCamScanView::~CCamScanView()
 {
     CleanupCamera();
 }
 
 
-CCamera::TFormat CQRCScanView::GetImageMaxFormat()
+CCamera::TFormat CCamScanView::GetImageMaxFormat()
 {
 
     if (iCameraInfo.iImageFormatsSupported & CCamera::EFormatFbsBitmapColor16M)
@@ -107,13 +107,13 @@ CCamera::TFormat CQRCScanView::GetImageMaxFormat()
     }
 }
 
-TInt CQRCScanView::GetImageMaxSize()
+TInt CCamScanView::GetImageMaxSize()
 {
     return iCameraInfo.iNumImageSizesSupported;
 }
 
 
-TInt CQRCScanView::SetupCamera(TInt aIndex)
+TInt CCamScanView::SetupCamera(TInt aIndex)
 {
     CleanupCamera();
     if (!CCamera::CamerasAvailable())
@@ -136,18 +136,22 @@ TInt CQRCScanView::SetupCamera(TInt aIndex)
 	    });
     }
 
-    ShowError();
+    if (iError != KErrNone) StartViewFinder();
+    else{
+	iCameraIndex = -1;
+	ShowError();
+    }
+
     return iError;
 }
 
 
-void CQRCScanView::CleanupCamera()
+void CCamScanView::CleanupCamera()
 {
-    iCameraIndex = -1;
+    iCameraIndex = 0;
     iFoundCode = EFalse;
     if (iCamera)
     {
-
 	StopViewFinder();
 	delete iCamera;
 	iCamera = NULL;
@@ -158,7 +162,7 @@ void CQRCScanView::CleanupCamera()
 }
 
 
-void CQRCScanView::StartViewFinder()
+void CCamScanView::StartViewFinder()
 {
 
     if(iCamera && !iError && !iViewFinderActivated/*!iCamera->ViewFinderActive()*/){
@@ -168,7 +172,7 @@ void CQRCScanView::StartViewFinder()
 }
 
 
-void CQRCScanView::StopViewFinder()
+void CCamScanView::StopViewFinder()
 {
 
     if(iCamera/* && iCamera->ViewFinderActive()*/)
@@ -180,7 +184,7 @@ void CQRCScanView::StopViewFinder()
     iViewFinderActivated = EFalse; 
 }
 
-void CQRCScanView::Draw(const TRect& aRect) const
+void CCamScanView::Draw(const TRect& aRect) const
 {
 
     CWindowGc& gc = SystemGc();
@@ -201,28 +205,37 @@ void CQRCScanView::Draw(const TRect& aRect) const
 }
 
 
-void CQRCScanView::SizeChanged()
+void CCamScanView::SizeChanged()
 {
-
-
+    CCoeControl::SizeChanged();
     TSize size = Size(); 
-    if (size.iWidth > size.iHeight)
+    /*if (size.iWidth > size.iHeight)
     {
         iViewFinderSize = TSize(size.iWidth, size.iWidth);
     }
     else
     {
         iViewFinderSize = TSize(size.iHeight, size.iHeight);
-    }
+    }*/
 
-    if(iCameraIndex > (-1))
-    {
+    iViewFinderSize = size;
+    if(iCameraIndex > (-1) && !iError)
+    {	
 	// reset  
 	SetupCamera(iCameraIndex);
     }
 }
 
-void CQRCScanView::CreateBackBufferL()
+/*void CCamScanView::HandleResourceChange(TInt aType)
+{
+    CCoeControl::HandleResourceChange( aType );
+    if (aType == KEikDynamicLayoutVariantSwitch )
+    {
+	DrawNow();
+    }
+}*/
+
+void CCamScanView::CreateBackBufferL()
 {
     // create back buffer bitmap
     iBackBuffer = new (ELeave) CFbsBitmap;
@@ -241,7 +254,7 @@ void CQRCScanView::CreateBackBufferL()
     iScanHelper.iGc = iBackBufferContext;
 }
 
-void CQRCScanView::ReleaseBackBuffer()
+void CCamScanView::ReleaseBackBuffer()
 {
     if (iBackBufferContext)
     {
@@ -262,7 +275,7 @@ void CQRCScanView::ReleaseBackBuffer()
 }
 
 
-void CQRCScanView::ShowError()
+void CCamScanView::ShowError()
 {
    
     if(iError != KErrNone)
@@ -274,7 +287,7 @@ void CQRCScanView::ShowError()
     }
 }
 
-void CQRCScanView::FindCode(CFbsBitmap* aBitmap)
+void CCamScanView::FindCode(CFbsBitmap* aBitmap)
 {
 
     TInt ret = iScanHelper.FindCode(aBitmap);
@@ -306,7 +319,7 @@ void CQRCScanView::FindCode(CFbsBitmap* aBitmap)
 }
 
 
-void CQRCScanView::ReserveComplete(TInt aError)
+void CCamScanView::ReserveComplete(TInt aError)
 {
     iError = aError;
     iViewFinderActivated = !aError;
@@ -320,7 +333,7 @@ void CQRCScanView::ReserveComplete(TInt aError)
     }
 }
 
-void CQRCScanView::PowerOnComplete(TInt aError)
+void CCamScanView::PowerOnComplete(TInt aError)
 {
     iError = aError;
     iViewFinderActivated = !aError;
@@ -334,12 +347,12 @@ void CQRCScanView::PowerOnComplete(TInt aError)
 }
 
 
-void CQRCScanView::ImageReady(CFbsBitmap* aBitmap, HBufC8* aData, TInt aError)
+void CCamScanView::ImageReady(CFbsBitmap* aBitmap, HBufC8* aData, TInt aError)
 {
     iError = aError;
 }
 
-void CQRCScanView::ViewFinderFrameReady(CFbsBitmap& aFrame)
+void CCamScanView::ViewFinderFrameReady(CFbsBitmap& aFrame)
 {
 
     if (iBackBufferContext && !iFoundCode)
@@ -359,7 +372,7 @@ void CQRCScanView::ViewFinderFrameReady(CFbsBitmap& aFrame)
     }
 }
 
-void CQRCScanView::FrameBufferReady(MFrameBuffer* aFrameBuffer, TInt aError){}
+void CCamScanView::FrameBufferReady(MFrameBuffer* aFrameBuffer, TInt aError){}
 
 
 
@@ -409,7 +422,7 @@ void CSquirrelScannerView::ConstructL()
 CSquirrelScannerView::CSquirrelScannerView()
 {
 
-    iQRCScanView = NULL;
+    iCamScanView = NULL;
 
 }
 
@@ -439,9 +452,11 @@ void CSquirrelScannerView::HandleCommandL( TInt aCommand )
 
 void CSquirrelScannerView::HandleViewRectChange()
 {
-    if (iQRCScanView)
+    CAknView::HandleViewRectChange();
+    if (iCamScanView)
     {
-	iQRCScanView->SetRect(ClientRect());
+	iCamScanView->SetRect(ClientRect());
+	AppUi()->ActivateLocalViewL(TUid::Uid(EDummyView));
     }   
 }
 
@@ -450,17 +465,11 @@ void CSquirrelScannerView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 	const TDesC8& /*aCustomMessage*/ )
 {
 
-
-    iQRCScanView = CQRCScanView::NewL(ClientRect());
-    iQRCScanView->SetMopParent(this);
-
-    if(iQRCScanView->SetupCamera() == KErrNone)
-    {
-	iQRCScanView->StartViewFinder();
-    }
-
-    AppUi()->AddToStackL(*this, iQRCScanView);  
-
+    SetAppTitleL(NULL, R_SCANNER_TITLE);
+    iCamScanView = CCamScanView::NewL(ClientRect());
+    iCamScanView->SetMopParent(this);
+    //iCamScanView->SetupCamera();
+    AppUi()->AddToStackL(*this, iCamScanView);  
     Cba()->MakeCommandVisible(EAknSoftkeyOptions,  EFalse);
 
 }
@@ -468,25 +477,25 @@ void CSquirrelScannerView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 void CSquirrelScannerView::DoDeactivate()
 {
 
-    if (iQRCScanView)
+    if (iCamScanView)
     {
-	AppUi()->RemoveFromViewStack(*this, iQRCScanView);
-	delete iQRCScanView;
-	iQRCScanView = NULL;
+	AppUi()->RemoveFromViewStack(*this, iCamScanView);
+	delete iCamScanView;
+	iCamScanView = NULL;
     }   
 }
 
 void CSquirrelScannerView::HandleForegroundEventL(TBool aForeground)
 {
-    if (!iQRCScanView) return;
+    if (!iCamScanView) return;
 
     if (aForeground)
     {
-	iQRCScanView->StartViewFinder();
+	iCamScanView->StartViewFinder();
     }
     else
     {
-	iQRCScanView->StopViewFinder();
+	iCamScanView->StopViewFinder();
     }
 }
 

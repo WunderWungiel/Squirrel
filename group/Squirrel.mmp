@@ -16,7 +16,7 @@ UID		0x100039CE 0xcdbe9aa7
 EPOCHEAPSIZE 0x200000 0x1400000 // 2MB  20MB
 EPOCSTACKSIZE 80000
 
-SOURCEPATH	..\src
+SOURCEPATH	../src
 SOURCE		Squirrel.cpp
 SOURCE		SquirrelApplication.cpp
 SOURCE		SquirrelAppUi.cpp
@@ -28,20 +28,16 @@ SOURCE		SquirrelScannerView.cpp
 SOURCE		SquirrelGeneratorView.cpp
 SOURCE		SquirrelDlgs.cpp
 SOURCE		SquirrelAboutView.cpp
-SOURCE		SquirrelModel.cpp
+SOURCE		SquirrelDummyView.cpp
+SOURCE		SquirrelModel.cpp 
+SOURCE          SquirrelEngine.cpp
 SOURCE		uicommons.cpp
 SOURCE		HistoryStore.cpp
 SOURCE          ImageHandler.cpp
-
 SOURCE          qrcodegen.c 
-SOURCE          QRCTools.cpp
-SOURCEPATH      ..\src\libquirc
-SOURCE 		decode.c
-SOURCE 		identify.c
-SOURCE 		quirc.c
-SOURCE 		version_db.c
 
-SOURCEPATH		..\data
+
+SOURCEPATH		../data
 
 START RESOURCE	Squirrel.rss
 HEADER
@@ -54,16 +50,17 @@ TARGET Squirrel_reg
 TARGETPATH 	  \private\10003a3f\apps
 END //RESOURCE
 
-USERINCLUDE	   ..\inc ..\src\libquirc
-
+USERINCLUDE	   ../inc 
 USERINCLUDE    ..\gfx // icons ids
 USERINCLUDE    ..\help
 
 SYSTEMINCLUDE	 /epoc32/include
 SYSTEMINCLUDE	 /epoc32/include/stdapis
+SYSTEMINCLUDE	 /epoc32/include/zbar
 
 MACRO STBI_NO_THREAD_LOCALS
 MACRO STBI_NO_SIMD
+MACRO ZBAR_NO_CPP_API
 OPTION GCCE -std=c99
 OPTION CW -lang c99 -enc UTF-8
 
@@ -94,14 +91,13 @@ LIBRARY            ecam.lib
 LIBRARY            sendui.lib
 LIBRARY            pbkeng.lib pbkview.lib cntmodel.lib
 LIBRARY            etel3rdparty.lib esock.lib insock.lib
-
+LIBRARY 	   vcard.lib versit.lib
 LIBRARY            libc.lib libm.lib
+STATICLIBRARY 	   libzbar.lib
 
-LANG SC
+LANG SC 01 14 
 
 VENDORID	0
 SECUREID	0xcdbe9aa7
-CAPABILITY	ReadUserData WriteUserData ReadDeviceData UserEnvironment LocalServices NetworkServices
-
-
+CAPABILITY	ReadUserData  WriteUserData UserEnvironment LocalServices NetworkServices
 // End of File

@@ -138,8 +138,10 @@ void CSquirrelHistoryView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 	TUid /*aCustomMessageId*/,
 	const TDesC8& /*aCustomMessage*/ )
 {
+    SetAppTitleL(NULL, R_HISTORY_TITLE);
     iListbox = new (ELeave) TListBox<DOUBLE_STYLE>;
     iListbox->ConstructL(NULL, ClientRect(), R_HISTORYVIEW_LISTBOX);
+    iListbox->Listbox()->ItemDrawer()->FormattedCellData()->EnableMarqueeL(ETrue);
     iListbox->SetObserver(this);
     iListbox->SetMopParent(this);
     AppUi()->AddToStackL(*this, iListbox); 
@@ -167,7 +169,7 @@ void CSquirrelHistoryView::DoDeactivate()
 
 void CSquirrelHistoryView::HandleListBoxEventL(CEikListBox* aListBox , TListBoxEvent aEventType)
 {
-    if (iListbox && (aEventType == EEventEnterKeyPressed || aEventType == EEventItemDoubleClicked))
+    if (iListbox && (aEventType == EEventEnterKeyPressed || aEventType == EEventItemClicked))
     {
 
 	TFileName fn;

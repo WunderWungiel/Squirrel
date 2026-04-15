@@ -8,8 +8,26 @@
 #include <aknlists.h>
 #include <aknpopup.h>
 #include <bautils.h>
+// needed by SetAppTitle
+#include <akntitle.h>
+#include <eikspane.h> 
 
-TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId, const TBool aShowDZ)
+static void DoFormatSize(TDes &aDes, TInt64 aSize)
+{
+    wchar_t* sizeSnits[] = {L"B", L"KB", L"MB", L"GB", L"TB"};
+    TReal size = (TReal)aSize;
+    for (TInt i=0; i < 5; i++){
+	if (size < 1024.0)
+	{
+            aDes.Format(_L("%.2f%s"), size, sizeSnits[i]);
+	    break;
+	}
+        size /= 1024.0;
+    } 
+}
+
+TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId,
+	const TBool aShowDZ, const TBool aShowReadOnly)
 {
 
     CAknDoubleLargeGraphicPopupMenuStyleListBox* list;
@@ -30,6 +48,7 @@ TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId, const TBool aSho
     list->ConstructL(popupList, flags);
     list->CreateScrollBarFrameL(ETrue);
     list->ScrollBarFrame()->SetScrollBarVisibilityL(CEikScrollBarFrame::EOff,CEikScrollBarFrame::EAuto);
+    list->ItemDrawer()->FormattedCellData()->EnableMarqueeL(ETrue);
     CDesCArrayFlat* items = new CDesCArrayFlat(3);
     CleanupStack::PushL(items);
  
@@ -57,6 +76,81 @@ TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId, const TBool aSho
 	}
     }
 
+    for (i = 0; i < driveList->MdcaCount(); i++)
+    {
+
+	TPtrC d = driveList->MdcaPoint(i); 	
+	TBuf<3> root(d);
+	root.Append(_L(":\\"));
+	TBool rootOK(EFalse);
+
+	if (!aShowReadOnly && BaflUtils::PathExists(rfs, root))
+	{
+	    
+	    TBool isRO(EFalse); 
+	    if (BaflUtils::DiskIsReadOnly(rfs, root, isRO) == KErrNone)
+	    {
+		rootOK = !isRO;	
+	    }
+    
+	}
+
+	if (!rootOK)
+	{
+	    driveList->Delete(i);
+	    continue;
+	}
+
+	TBuf<KMaxFileName+64> item;
+	TBuf<64> sizeInfo1;
+	//TBuf<64> sizeInfo2;
+	TVolumeInfo driveInfo;
+	TInt driveNumber;
+
+ 	rfs.CharToDrive(d[0], driveNumber); 
+        if (rfs.Volume(driveInfo, driveNumber) != KErrNone)
+	{
+	    driveList->Delete(i);
+	    continue;
+	}
+	
+	TBuf<KMaxFileName> driveName = driveInfo.iName; // Optional name of the volume
+	
+	if (driveName.Length() == 0)
+	{
+	    TInt mediaType = driveInfo.iDrive.iType;
+            if (mediaType == EMediaNANDFlash){ 
+		if (d[0] == 'C') driveName = _L("Phone memory");
+		else  driveName = _L("NAND flash");
+	    }
+
+	    if (mediaType == EMediaHardDisk) driveName = _L("Mass storage");
+	    else if (mediaType == EMediaRemote) driveName = _L("Remote");
+	}
+
+	DoFormatSize(sizeInfo1, driveInfo.iFree);
+        //DoFormatSize(sizeInfo2, driveInfo.iSize);
+	item.Format(_L("%d\t%S: %S\tFree: %S\t"), iconIndex, &d, &driveName, &sizeInfo1);
+	items->AppendL(item);
+	iconIndex++;
+
+	CFbsBitmap *bm, *mask;
+	if (d[0] == 'F' || d[0] == 'E')
+	{
+	    AknIconUtils::CreateIconL(bm, mask, AknIconUtils::AvkonIconFileName(), EMbmAvkonQgn_prop_mmc_memc_large, EMbmAvkonQgn_prop_mmc_memc_large_mask);
+  
+	}
+
+	else
+	{
+    
+	    AknIconUtils::CreateIconL(bm, mask, AknIconUtils::AvkonIconFileName(), EMbmAvkonQgn_prop_phone_memc_large, EMbmAvkonQgn_prop_phone_memc_mask);
+    
+	}
+	icons->AppendL(CGulIcon::NewL(bm, mask));	
+    }
+
+#if 0
     for (i = 0; i < driveList->MdcaCount(); i++)
     {
 
@@ -89,9 +183,9 @@ TBool DriveSelectionL(TDes &aDrivePath, const TInt aTitleResId, const TBool aSho
 	}
 	icons->AppendL(CGulIcon::NewL(bm, mask));	
     }
+#endif
 
-
-    CTextListBoxModel* model = list->Model();
+CTextListBoxModel* model = list->Model();
     model->SetItemTextArray(items);
     model->SetOwnershipType(ELbmOwnsItemArray);
     CleanupStack::Pop(items);
@@ -138,6 +232,23 @@ void ErrorNoteL(const TDesC *aText, TInt aResourceId)
     }
 }
 
+void SetAppTitleL(const TDesC *aTitle, TInt aResourceId)
+{
+    CEikStatusPane* statusPane = CEikonEnv::Static()->AppUiFactory()->StatusPane();
+
+    if (statusPane)
+    {
+	CAknTitlePane* titlePane = static_cast<CAknTitlePane*>(statusPane->ControlL(TUid::Uid(EEikStatusPaneUidTitle)));
+	if (!titlePane) return;
+	if (aTitle) titlePane->SetTextL(*aTitle);
+	else if (aResourceId != 0)
+	{
+	    HBufC *textResource = CCoeEnv::Static()->AllocReadResourceLC(aResourceId);
+	    titlePane->SetTextL(*textResource);
+	    CleanupStack::PopAndDestroy(textResource);
+	}
+    }
+}
 
 // Implementation of CBitmapDrawer
 
@@ -240,12 +351,8 @@ void CBitmapDrawer::SetBrushColorL(const TRgb &aColor, TBool aNoBorder)
 {
     User::LeaveIfNull(iBitmap);
     User::LeaveIfNull(iGc);
-
-    CGraphicsContext::TPenStyle penStyle = aNoBorder ? CGraphicsContext::ENullPen : CGraphicsContext::ESolidPen;
-
-    iGc->SetPenStyle(penStyle);
     iGc->SetBrushColor(aColor);
-    iGc->SetBrushStyle(CGraphicsContext::ESolidBrush);
+    //iGc->SetBrushStyle(CGraphicsContext::ESolidBrush);
 }
 
 void CBitmapDrawer::ClearL(const TRgb &aColor)
@@ -264,7 +371,6 @@ void CBitmapDrawer::DrawRectL(const TRect &aRect)
     User::LeaveIfNull(iGc);
     iGc->DrawRect(aRect);
 }
-
 
 
 void CBitmapDrawer::DrawRectL(const TRect &aRect, const TRgb &aColor)
@@ -465,10 +571,8 @@ void CViewContainer::HandleResourceChange(TInt aType)
     CCoeControl::HandleResourceChange( aType );
     if ( aType == KEikDynamicLayoutVariantSwitch )
     {
-
 	DrawNow();
     }
-
 }
 // Implementation of CTextEdit
 
@@ -696,17 +800,13 @@ void CGridListBox::ConstructL(CCoeControl* aParent, const TRect& aRect, TInt aRe
     {
 	TResourceReader reader;
 	CEikonEnv::Static()->CreateResourceReaderLC(reader, aResourceId);
-
-
 	iGrid->ConstructFromResourceL(reader);
 	CleanupStack::PopAndDestroy(); // reader
-
     }
-    else{
+    else
+    {
 	iGrid->ConstructL(this, EAknListBoxSelectionGrid);
-
     }
-
     SetRect(aRect);
     ActivateL();
 }
@@ -731,7 +831,10 @@ CCoeControl* CGridListBox::ComponentControl(TInt aIndex) const
 
 void CGridListBox::SizeChanged()
 {
-    if (iGrid) iGrid->SetRect(Rect());
+    if (iGrid)
+    {
+	iGrid->SetRect(Rect());
+    }
 }
 
 TKeyResponse CGridListBox::OfferKeyEventL(const TKeyEvent& aKeyEvent,TEventCode aType)
@@ -813,19 +916,77 @@ void CGridListBox::SetFont(const CFont *aFont)
     iFont = aFont;
 }
 
-void CGridListBox::SetupGrid(TInt aNumOfItems, TInt aGridColumns, TInt aGridRows,TBool aWithIcons, TBool aDefaultLayout)
+void CGridListBox::SetupGrid(TInt aNumOfItems, TInt aGridColumns, TInt aGridRows,TBool aWithIcons)
 {	
 
-    iNumOfItems = aNumOfItems;   
-    iNumOfColumns = aGridColumns;	
-    iNumOfRows = aGridRows;
+    AknListBoxLayouts::SetupStandardGrid(*iGrid); 
+    TSize mpSize;     // main pane size
+    AknLayoutUtils::LayoutMetricsSize(AknLayoutUtils::EMainPane, mpSize);
+    
+    // Determinate cell size
+    iSizeOfCell.iWidth = mpSize.iWidth / aGridColumns;
+    iSizeOfCell.iHeight = mpSize.iHeight / aGridRows;
+    iTextRect.SetRect(0,0,0,0);
+  
 
-    if(aDefaultLayout) SetDefaultGridLayout();	
-    else {SetupGridLayout(); }	
+    if (aWithIcons){
+	iGfxRect.SetRect(0, 0, iSizeOfCell.iWidth, iSizeOfCell.iHeight/2); 
+	SetupGridIconsL(aNumOfItems);
+    }
+     
+    TBool verticalOrientation = EFalse;
+    TBool leftToRight = ETrue;
+    TBool topToBottom = ETrue;
+    
+    // Set grid layout
+    iGrid->SetLayoutL(verticalOrientation, 
+        leftToRight, topToBottom, 
+        aGridColumns, aGridRows,  
+        iSizeOfCell);
+
+    // Set scrolling type
+    iGrid->SetPrimaryScrollingType(CAknGridView::EScrollIncrementLineAndLoops);
+    iGrid->SetSecondaryScrollingType(CAknGridView::EScrollIncrementLineAndLoops);    
+    // Set current index in grid
+    iGrid->SetCurrentDataIndex(0);
+    if (aWithIcons) SetupGfxCellL();	
+    SetupTextCell(); 
+    CEikScrollBarFrame* frame = iGrid->ScrollBarFrame();
+    if (frame) frame->SetScrollBarVisibilityL(CEikScrollBarFrame::EOff,CEikScrollBarFrame::EAuto);
 }
 
 
-void CGridListBox::SetupGfxCell(TInt aIndex)
+void CGridListBox::SetupGfxGrid(TInt aNumOfItems)
+{
+  
+    TInt cellWidth = iGrid->ColumnWidth();
+    TInt cellHeight = iGrid->ItemHeight();
+    
+    AknListBoxLayouts::SetupStandardGrid(*iGrid); 
+
+    TBool verticalOrientation = EFalse;
+    TBool leftToRight = ETrue;
+    TBool topToBottom = ETrue;
+    
+    TRect textRect(0,0,0,0);
+    TRect gfxRect(0,0, cellWidth, cellHeight/2);
+    SetCellRects(textRect, gfxRect);
+    SetupGridIconsL(aNumOfItems);   
+    iGrid->SetCurrentDataIndex(0);
+    SetupGfxCellL();
+    SetupTextCell(); 
+    CEikScrollBarFrame* frame = iGrid->ScrollBarFrame();
+    if (frame) frame->SetScrollBarVisibilityL(CEikScrollBarFrame::EOff,CEikScrollBarFrame::EAuto);
+
+}
+
+void CGridListBox::SetupGridIconsL(TInt aNumOfItems)
+{
+    CArrayPtr<CGulIcon>* icons = new (ELeave) CAknIconArray(aNumOfItems);
+    iGrid->ItemDrawer()->FormattedCellData()->SetIconArray(icons);
+}
+
+void CGridListBox::SetupGfxCellL(TInt aIndex)
 {
 
 
@@ -887,48 +1048,6 @@ void CGridListBox::SetupTextCell(TInt aIndex, TInt aBaseline)
     iGrid->ItemDrawer()->ColumnData()->SetSubCellColorsL(aIndex, colors);
 }
 
-void CGridListBox::SetupGridLayout()
-{	
-    CArrayPtr<CGulIcon>* icons = new(ELeave) CAknIconArray(iNumOfItems);
-    iGrid->ItemDrawer()->FormattedCellData()->SetIconArray(icons);
-
-     
-    TBool iVerticalOrientation = EFalse;
-    TBool iLeftToRight = ETrue;
-    TBool iTopToBottom = ETrue;
-    
-    // Set grid layout
-    iGrid->SetLayoutL(iVerticalOrientation, 
-        iLeftToRight, iTopToBottom, 
-        iNumOfColumns, iNumOfRows,  
-        iSizeOfCell);
-
-    // Set scrolling type
-    iGrid->SetPrimaryScrollingType(CAknGridView::EScrollIncrementLineAndLoops);
-    iGrid->SetSecondaryScrollingType(CAknGridView::EScrollIncrementLineAndLoops);    
-    // Set current index in grid
-    iGrid->SetCurrentDataIndex(0);
-    SetupGfxCell();	
-    SetupTextCell();  
-    //AknListBoxLayouts::SetupStandardGrid(*iGrid);
-}
-
-void CGridListBox::SetDefaultGridLayout()
-{
-
-    TSize mpSize;     // main pane size
-    AknLayoutUtils::LayoutMetricsSize( AknLayoutUtils::EMainPane, mpSize );
-    
-    // Determinate cell size
-    iSizeOfCell.iWidth = mpSize.iWidth / iNumOfColumns;
-    iSizeOfCell.iHeight = mpSize.iHeight / iNumOfRows;
-   
-   
-    TRect textRect(0,0,0,0);
-    TRect gfxRect(0, 0, iSizeOfCell.iWidth, iSizeOfCell.iHeight/2);   
-    SetCellRects(textRect, gfxRect);
-    SetupGridLayout();
-}
 
 
 

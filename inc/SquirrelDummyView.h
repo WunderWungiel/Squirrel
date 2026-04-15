@@ -1,83 +1,31 @@
 /*
  ============================================================================
- Name		: SquirrelAppView.h
+ Name		: SquirrelDummyView.h
  Author	  : JigokuMaster
  Copyright   : Your copyright notice
  Description : Declares view class for application.
  ============================================================================
  */
 
-#ifndef __SQUIRRELAPPVIEW_h__
-#define __SQUIRRELAPPVIEW_h__
+#ifndef __SQUIRRELDUMMYVIEW_h__
+#define __SQUIRRELDUMMYVIEW_h__
 
 // INCLUDES
 #include <aknview.h>
-#include <eiklbo.h>
-#include "uicommons.h"
 
 
-// CLASS DECLARATION
-
-class CMainViewGrid: public CCoeControl
-{
-
-public:
-	CMainViewGrid();
-
-	~CMainViewGrid();
-
-	void ConstructL(const TRect& aRect);
-
-public:
-	CAknGrid* Grid() {return iGrid;};
-	
-	void SetupGrid();
-	
-	void SetupGridIconsL();	
-
-	void AddIconL(const TDesC& aFilePath, TInt aBitmapId, TInt aMaskId=-1);
-
-	void SetFont(const CFont *aFont);
-
-
-private: // from base classes
-
-       /******
-        * From CoeControl 
-	*
-	******/
-
-	void SizeChanged();
-
-	TKeyResponse OfferKeyEventL(const TKeyEvent& aKeyEvent,TEventCode aType);
-
-        TInt CountComponentControls() const;
-
-        CCoeControl* ComponentControl(TInt aIndex) const;
-
-	void HandlePointerEventL(const TPointerEvent &aPointerEvent);
-
-
-private: // data
-	const CFont *iFont;
-	CAknGrid* iGrid;
-
-};
-
-
-class CSquirrelAppView : public CAknView, 
-MEikListBoxObserver
+class CSquirrelDummyView : public CAknView
 {
 public:
 	// New methods
-	static CSquirrelAppView* NewL();
-	static CSquirrelAppView* NewLC();
+	static CSquirrelDummyView* NewL();
+	static CSquirrelDummyView* NewLC();
 
 	/**
-	 * ~CSquirrelAppView
+	 * ~CSquirrelDummyView
 	 * Virtual Destructor.
 	 */
-	virtual ~CSquirrelAppView();
+	virtual ~CSquirrelDummyView();
 
 public:
     
@@ -97,8 +45,6 @@ public:
         */
         void HandleCommandL( TInt aCommand );
    
-	void HandleViewRectChange();
-
         /**
         * From CAknView.
         * Activates view
@@ -117,21 +63,15 @@ public:
         */
         void DoDeactivate();
 
-	void HandleListBoxEventL(CEikListBox* aListBox, TListBoxEvent aEventType);
 private:
 	// Constructors
 	void ConstructL();
 
 	/**
-	 * CSquirrelAppView.
+	 * CSquirrelDummyView.
 	 * C++ default constructor.
 	 */
-	CSquirrelAppView();
-
-private:
-	CMainViewGrid*	iGridListbox;
-	TListBox<SINGLE_LARGE_STYLE> *iListbox;
-	TBool iUseGrid;	
+	CSquirrelDummyView();
 };
 
 #endif // __SQUIRRELAPPVIEW_h__

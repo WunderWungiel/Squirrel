@@ -11,7 +11,9 @@ Description : Application view implementation
 #include <coemain.h>
 #include <npdapi.h>
 #include <es_sock.h>
+#include <es_enum.h>
 #include <in_sock.h>
+#include <caknfileselectiondialog.h>
 #include "SquirrelAppUi.h"
 #include "SquirrelGeneratorView.h"
 #include "SquirrelDlgs.h"
@@ -126,19 +128,36 @@ void CSquirrelGeneratorView::SetupControlsL()
 void CSquirrelGeneratorView::LayoutControls()
 {
 
+/*
     TInt edge = 10;
-    TRect r = ClientRect();
+    TRect r = ClientRect();  
     TInt rw = r.Width();
     TInt rh = r.Height();
-    TInt w = (rw/2) - edge;
-    TInt h = (rh/2) - edge;
 
-    TRect rect1(TPoint(edge, edge), TSize(w, h));
+    TInt editorMinHeight = rh*0.3;
+    TInt imgBaseSize = Min(rw-editorMinHeight, rh-editorMinHeight) - edge;
+    TRect rect1(TPoint(edge, 0), TSize(imgBaseSize, imgBaseSize));
     iImageView->SetRect(rect1);
 
-    //iImageView->SetAlignment(EHLeftVTop);
+    TInt editorWidth = rw-edge;  
+    TInt editorHeight = rh-imgBaseSize;   
+    TRect rect2(TPoint(edge, edge+imgBaseSize), TSize(editorWidth, editorHeight));
+    iTextEdit->SetRect(rect2);
+*/
+    TInt edge = 0;
+    TInt leftEdge = 10;
+    TRect r = ClientRect();  
+    TInt rw = r.Width();
+    TInt rh = r.Height();
 
-    TRect rect2(TPoint(edge, h + edge), TSize(rw - edge, h));
+    TInt editorMinHeight = rh*0.3;
+    TInt imgBaseSize = (rh-editorMinHeight) - (edge*2);
+    TRect rect1(TPoint(leftEdge, 0), TSize(imgBaseSize, imgBaseSize));
+    iImageView->SetRect(rect1);
+
+    TInt editorWidth = rw-leftEdge;  
+    TInt editorHeight = rh-imgBaseSize;   
+    TRect rect2(TPoint(leftEdge, edge+imgBaseSize), TSize(editorWidth, editorHeight));
     iTextEdit->SetRect(rect2);
 
 }
@@ -174,6 +193,7 @@ void CSquirrelGeneratorView::DoGenerateFromPhoneIMEIL(const TBool aRetry)
 	  DoGenerateFromPhoneIMEIL(EFalse);
 	  return;
       }
+      iTextEdit->ClearL();
       iTextEdit->WriteL(phoneId.iSerialNumber);
       iEncoderModel->EncodeL(phoneId.iSerialNumber);
       iContainer->UpdateControl(0, EFalse);
@@ -184,6 +204,7 @@ void CSquirrelGeneratorView::DoGenerateFromPhoneIMEIL(const TBool aRetry)
 #endif /*__WINS__*/
 }
 
+
 void CSquirrelGeneratorView::DoGenerateFromIPAddressL()
 {
     RSocketServ rss;
@@ -191,7 +212,6 @@ void CSquirrelGeneratorView::DoGenerateFromIPAddressL()
 
     User::LeaveIfError(rss.Connect());
     User::LeaveIfError(sock.Open(rss,KAfInet,KSockStream,KProtocolInetTcp));
-
     // Copied from PyS60 e32socketmodule: list network interfaces and find wlan ip.      
     TInt error;
     TSoInetInterfaceInfo ifinfo;
@@ -201,6 +221,7 @@ void CSquirrelGeneratorView::DoGenerateFromIPAddressL()
     error = sock.SetOpt(KSoInetEnumInterfaces, KSolInetIfCtrl);
     if (error == KErrNone)
     {
+	iTextEdit->ClearL();
 	while(sock.GetOpt(KSoInetNextInterface, KSolInetIfCtrl, ifinfopkg) == KErrNone)
 	{
 	    TSoInetInterfaceInfo &info = ifinfopkg();
@@ -213,8 +234,13 @@ void CSquirrelGeneratorView::DoGenerateFromIPAddressL()
 		TBuf<40> ifAddress;
 		ifAddress.FillZ(40);
 		ifinfo.iAddress.Output(ifAddress);
-		if (ifinfo.iName.Right(5).CompareF(_L("wlan4")) == 0)
+		if ((ifinfo.iName.FindF(_L("wlan")) != KErrNotFound) && (ifAddress.Locate(':') == KErrNotFound))
 		{
+		    /*TBuf <200> infoMsg;
+		    infoMsg.Format(_L("IFNAME: %S, ADDR: %S\n"), &ifinfo.iName, &ifAddress);
+		    infoMsg.Format(_L("IFNAME: %S, ADDR: %S\n"), &ifinfo.iName, &ifAddress);
+		    iTextEdit->WriteL(infoMsg);*/
+		    iTextEdit->ClearL();
 		    iEncoderModel->EncodeL(ifAddress);
 		    iTextEdit->WriteL(ifAddress);
 		    break;
@@ -225,13 +251,14 @@ void CSquirrelGeneratorView::DoGenerateFromIPAddressL()
     
     if (error != KErrNone) ShowErrorL(error);
     sock.Close(); 
-    rss.Close();    
+    rss.Close(); 
 }
+
+#include <utf.h> 
 
 void CSquirrelGeneratorView::DoGenerateFromTemplateL(const TInt aCmd)
 {
     
-    iTextEdit->ClearL();
     switch(aCmd)
     {
 	case ECmdSelectMemo:
@@ -240,6 +267,7 @@ void CSquirrelGeneratorView::DoGenerateFromTemplateL(const TInt aCmd)
 	    if (out)
 	    {
 		iEncoderModel->EncodeL(*out);
+		iTextEdit->ClearL();
 		iTextEdit->WriteL(*out);
 		iContainer->UpdateControl(0, EFalse);
 		delete out;
@@ -252,7 +280,14 @@ void CSquirrelGeneratorView::DoGenerateFromTemplateL(const TInt aCmd)
 	{
 	    CContactSelectionDlg* sel = CContactSelectionDlg::NewL();
 	    TInt index = sel->ShowL();
-	    if (index >= 0) iEncoderModel->EncodeL(sel->GetVCardL(index));
+	    if (index >= 0) {
+	     	iTextEdit->ClearL();
+		iEncoderModel->EncodeL(sel->GetVCardL(index));	
+		/*TPtr8 p = sel->GetVCardL(index);
+		HBufC16* out = CnvUtfConverter::ConvertToUnicodeFromUtf8L(p);
+		iTextEdit->WriteL(*out);*/
+	    }
+
 	    CleanupStack::PopAndDestroy(sel);
 	    break;
 	}
@@ -273,10 +308,15 @@ void CSquirrelGeneratorView::DoGenerateFromTemplateL(const TInt aCmd)
 void CSquirrelGeneratorView::DoSaveImageL()
 {
     TFileName fp;
-    if (DriveSelectionL(fp, R_DRIVESELECTION_TITLE))
-    {
-	iEncoderModel->SaveImageL(fp);
-    }
+    if (!DriveSelectionL(fp, R_DRIVESELECTION_TITLE)) return;
+
+    CAknFileSelectionDialog* d = CAknFileSelectionDialog::NewL(ECFDDialogTypeSave);//, R_SAVEPATHSELECTION_DIALOG);
+    CleanupStack::PushL(d);
+    TBool ok = d->ExecuteL(fp);
+    CleanupStack::PopAndDestroy(d);
+    if (ok) iEncoderModel->SaveImageL(fp);
+    else DoSaveImageL();
+
 }
 
 
@@ -318,8 +358,9 @@ void CSquirrelGeneratorView::HandleCommandL( TInt aCommand )
 	case ECmdSelectMemo:
 	case ECmdSelectContact:
 	case ECmdSelectCalendar:
-	case ECmdSelectIMEI:
+	case ECmdSelectBookmark:
 	case ECmdSelectIP:
+	case ECmdSelectIMEI:
 	    if (iEncoderModel) DoGenerateFromTemplateL(aCommand);
 	    break;
 
@@ -332,15 +373,12 @@ void CSquirrelGeneratorView::HandleCommandL( TInt aCommand )
 	    break;
 
 	case ECmdSendImage:
-
 	    if (iEncoderModel) iEncoderModel->SendImageL();
-
 	    break;
 	case ECmdOpenGeneratorSettings:
-	    {
 	    CGeneratorSettingsDlg* d = CGeneratorSettingsDlg::NewL(iEncoderModel->Settings());
 	    d->ShowLD();
-	    }
+	    SetAppTitleL(NULL, R_GENERATOR_TITLE);
 	    break;
 	default:
 	    AppUi()->HandleCommandL(aCommand);  
@@ -362,7 +400,8 @@ void CSquirrelGeneratorView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 	TUid /*aCustomMessageId*/,
 	const TDesC8& /*aCustomMessage*/ )
 {
-
+    
+    SetAppTitleL(NULL, R_GENERATOR_TITLE);
     iContainer = new (ELeave) CViewContainer;
     iContainer->ConstructL(ClientRect(), ETrue /* Skinned Container */);
     iContainer->SetMopParent(this);

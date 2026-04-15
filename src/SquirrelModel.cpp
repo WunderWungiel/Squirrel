@@ -15,7 +15,6 @@
 #include <icl/imageprocessor.h>
 #include <textresolver.h>
 #include <wchar.h>
-
 #include "SquirrelAppUi.h"
 #include "SquirrelModel.h"
 #include "Squirrel.hrh"
@@ -106,10 +105,10 @@ void SendFileL(const TDesC &aFilePath)
 
 // Implementation of CGeneratorSettings
 
-CGeneratorSettings::CGeneratorSettings(QRCEncoder* aQRCEncoder)
+CGeneratorSettings::CGeneratorSettings(QRCEncoder* aEncoder)
 {
    iFileStore = NULL;
-   iQRCEncoder = aQRCEncoder;
+   iEncoder = aEncoder;
 }
 
 CGeneratorSettings::~CGeneratorSettings()
@@ -117,9 +116,9 @@ CGeneratorSettings::~CGeneratorSettings()
     if (iFileStore) delete iFileStore;
 }
 
-CGeneratorSettings* CGeneratorSettings::NewL(QRCEncoder* aQRCEncoder)
+CGeneratorSettings* CGeneratorSettings::NewL(QRCEncoder* aEncoder)
 {
-    CGeneratorSettings* self = new(ELeave) CGeneratorSettings(aQRCEncoder);
+    CGeneratorSettings* self = new(ELeave) CGeneratorSettings(aEncoder);
     CleanupStack::PushL(self);
     self->ConstructL();
     CleanupStack::Pop(self);
@@ -160,7 +159,7 @@ TBool CGeneratorSettings::RestoreL()
     TInt minVersion = instream.ReadInt32L();
     TInt maxVersion = instream.ReadInt32L();
     TInt ecl = instream.ReadInt32L();
-    iQRCEncoder->SetParams(ecl, minVersion, maxVersion);
+    iEncoder->SetParams(ecl, minVersion, maxVersion);
 
     iScale = instream.ReadInt32L();
     iBorder = instream.ReadInt32L();
@@ -198,9 +197,9 @@ void CGeneratorSettings::StoreL(TBool aCreate)
     }
 
        
-    outstream.WriteInt32L(iQRCEncoder->MinVersion());
-    outstream.WriteInt32L(iQRCEncoder->MaxVersion());
-    outstream.WriteInt32L(iQRCEncoder->Ecl());
+    outstream.WriteInt32L(iEncoder->MinVersion());
+    outstream.WriteInt32L(iEncoder->MaxVersion());
+    outstream.WriteInt32L(iEncoder->Ecl());
     outstream.WriteInt32L(iScale); 
     outstream.WriteInt32L(iBorder);
     outstream.WriteInt32L(iImageFormatIndex); 
@@ -284,7 +283,7 @@ void CQRCEncoderModel::EncodeL(const TDesC8 &aText)
 
     const char* utf8TextPtr = reinterpret_cast<const char*>(aText.Ptr());
 
-    TInt qrcSize = iQRCEncoder.EncodeText(utf8TextPtr);
+    TInt qrcSize = iEncoder.EncodeText(utf8TextPtr);
 
     if (qrcSize > 0)
     {
@@ -333,11 +332,12 @@ void CQRCEncoderModel::SaveImageL(TFileName &aFilePath)
 
     if (iImageEncoder) delete iImageEncoder;
 
-    if ( aFilePath[0] == 'C')
+    /*if ( aFilePath[0] == 'C')
     {
 	aFilePath.Copy(PathInfo::PhoneMemoryRootPath());
     }
     aFilePath.Append(PathInfo::ImagesPath());
+    */
     const TUid format = iSettings->ImageFormat(aFilePath); // appends filename + extention
 
     CApaApplication::GenerateFileName(rfs, aFilePath); // generates a unique filename
@@ -440,7 +440,7 @@ void CQRCEncoderModel::DrawQRCImageL(const TInt &aSize)
     {
 	for (TInt x = 0; x < aSize; x++)
 	{
-	   if (iQRCEncoder.GetModule(x, y)){
+	   if (iEncoder.GetModule(x, y)){
 
 	       TRect r(TPoint(e+x*scale, e+y*scale), TSize(scale, scale));
 	       iCachedBitmapDrawer->DrawRectL(r);
@@ -507,7 +507,7 @@ void CQRCEncoderModel::DoCancel()
 
 void CQRCEncoderModel::CreateSettingsL()
 {
-    iSettings = CGeneratorSettings::NewL(&iQRCEncoder);
+    iSettings = CGeneratorSettings::NewL(&iEncoder);
 }
 
 CGeneratorSettings* CQRCEncoderModel::Settings()
@@ -516,21 +516,20 @@ CGeneratorSettings* CQRCEncoderModel::Settings()
 }
 
 
-// Implementation of CQRCDecoderModel
+// Implementation of CDecoderModel
 
-CQRCDecoderModel::CQRCDecoderModel():CActive(EPriorityStandard)
+CDecoderModel::CDecoderModel():CActive(EPriorityStandard)
 {
     iState = EIdle;
     iViewContainer = NULL;
     iImageView = NULL;
     iImageBitmap = NULL;
-    iInfoView = NULL;
     iWaitDialog = NULL;
     iDataAvailable = EFalse;
     CActiveScheduler::Add(this);
 }
 
-CQRCDecoderModel::~CQRCDecoderModel()
+CDecoderModel::~CDecoderModel()
 {
     if (iViewContainer){
 	delete iViewContainer;
@@ -557,14 +556,13 @@ CQRCDecoderModel::~CQRCDecoderModel()
 }
 
 
-CViewContainer* CQRCDecoderModel::SetupViewL(const TRect &aRect)
+CViewContainer* CDecoderModel::SetupViewL(const TRect &aRect)
 {
 
     if (iViewContainer)
     {
-    
 	iViewContainer->SetRect(aRect);
-	LayoutViewControls();
+	DrawCodeRect();
 	return iViewContainer;
     }
 
@@ -574,51 +572,82 @@ CViewContainer* CQRCDecoderModel::SetupViewL(const TRect &aRect)
     iImageView = new (ELeave) CEikImage;
     iImageView->SetPictureOwnedExternally(ETrue);
     iImageView->SetContainerWindowL(*iViewContainer);
-    //iImageView->SetBrushStyle(CGraphicsContext::EForwardDiagonalHatchBrush);
-
     iViewContainer->AddControlL(iImageView);
-
-    iInfoView = new (ELeave) CTextEdit;
-    iInfoView->ConstructL(aRect, iViewContainer);
-
-    TRgb textColor;
-    AknsUtils::GetCachedColor(AknsUtils::SkinInstance(), textColor, KAknsIIDQsnTextColors, EAknsCIQsnTextColorsCG6);
-    iInfoView->SetTextColorL(textColor);
-    iInfoView->SetReadOnly(ETrue);
-    iViewContainer->AddControlL(iInfoView);
-    LayoutViewControls();
+    DrawCodeRect();
     return iViewContainer;
 
 }
 
-CViewContainer* CQRCDecoderModel::GetView()
+CViewContainer* CDecoderModel::GetView()
 {
     return iViewContainer;
 }
 
-void CQRCDecoderModel::LayoutViewControls()
+void CDecoderModel::DrawCodeRect()
 {
     if (!iViewContainer) return;
 
     TSize viewSize = iViewContainer->Size();
-    TInt space = 10;
-    TInt viewW = viewSize.iWidth;
-    TInt viewH = viewSize.iHeight;
-    TInt w = (viewW-space)/2;
-    TInt h = viewH/2;
+    const CFbsBitmap* bm = iImageView->Bitmap();
+    TInt x = 0;
+    TInt y = 0;
 
-    TInt x = (viewW-(w*2))/2;
-    TInt y = (viewH-h)/2;
+    if (bm)
+    {
+	TSize bmSize = bm->SizeInPixels(); // size of the scaled image
 
-    TRect rect1(TPoint(x, y), TSize(w, h));
-    iImageView->SetRect(rect1);
+	if (iDecoderResult.has_qrcode && iDataAvailable)
+	{
 
-    TRect rect2(TPoint(x+space+w, y), TSize(w, h));
-    iInfoView->SetRect(rect2);
+	    TInt lineSize = 3;
+
+	    CBitmapDrawer* bitmapDrawer = CBitmapDrawer::NewL((CFbsBitmap*)bm);
+	    bitmapDrawer->Gc()->SetPenColor(KRgbGreen);
+	    bitmapDrawer->Gc()->SetPenSize(TSize(lineSize, lineSize));
+	    
+	    TSize origBMSize = iImageBitmap->SizeInPixels(); // size of the original image
+	    float scale_x = (float)bmSize.iWidth / (float)origBMSize.iWidth;
+	    float scale_y = (float)bmSize.iHeight / (float)origBMSize.iHeight;
+
+	    for (TInt i=0; i < 4; i++)
+	    {
+		TInt j = (i + 1) % 4;
+		TInt x1 = iDecoderResult.code_pos[i][0];
+		TInt y1 = iDecoderResult.code_pos[i][1];
+	    
+		TInt x2 = iDecoderResult.code_pos[j][0];
+		TInt y2 = iDecoderResult.code_pos[j][1];
+	    
+		// Scale points
+		x1 *= scale_x; y1 *= scale_y;	
+		x2 *= scale_x; y2 *= scale_y;
+	      
+		TPoint start(x1, y1);	
+		TPoint end(x2, y2);
+		bitmapDrawer->Gc()->DrawLine(start, end);
+	    }
+	    delete bitmapDrawer;
+	}
+
+	x = Abs(viewSize.iWidth - bmSize.iWidth)/2;
+	y = Abs(viewSize.iHeight - bmSize.iHeight)/2;
+    
+	iImageView->SetPosition(TPoint(x, y)); // center the image
+	iImageView->SetSize(bmSize);
+    }
+
+    else {
+	TRect rect(TPoint(x, y), viewSize);
+	iImageView->SetRect(rect);
+    }
+
+    iViewContainer->DrawNow();
+
 }
 
 
-TBool CQRCDecoderModel::DecodeBitmap(CFbsBitmap* aBitmap)
+
+TBool CDecoderModel::DecodeBitmap(CFbsBitmap* aBitmap)
 {
     TSize size = aBitmap->SizeInPixels();
     TInt w = size.iWidth, h = size.iHeight;
@@ -630,51 +659,38 @@ TBool CQRCDecoderModel::DecodeBitmap(CFbsBitmap* aBitmap)
 	return EFalse;
     }
 
-    QRCScanHelper::BGRBitmapToGray(aBitmap, data);
-    //SaveBMData("D:\\1bpp.bmp", w, h, 1, data);
+    ScanHelper::BGRBitmapToGray(aBitmap, data);
+   
     iState = EDecodingImage;
-    TInt ret = iDecoder.DecodeImageData(data, size.iWidth, size.iHeight/*, bpp*/); 
+    
+    /*TInt ret = iDecoder.DecodeImageData(data, size.iWidth, size.iHeight); 
+    */
+
+    Mem::FillZ(&iDecoderResult, sizeof(DecoderResult));
+
+    TInt ret = iDecoder.ExtractCode(data, size.iWidth, size.iHeight, &iDecoderResult);
+
     delete data;
 
-    if (ret < 1)
+    iDataAvailable = ret > 0;
+   
+    if (!iDataAvailable)
     {
 	StepCompleted(EError, (ret == 0) ? KErrNotFound : KErrNone);
 	return EFalse;
     }
 
-
-    StepCompleted(EImageDecoded);
+    StepCompleted(ECodeExtracted);
     return ETrue;
 }
 
-TBool CQRCDecoderModel::DecodeBitmapData(CFbsBitmap* aBitmap)
-{
-
-    TSize size = aBitmap->SizeInPixels();
-    TInt w = size.iWidth, h = size.iHeight;
-    TInt bpp = TDisplayModeUtils::NumDisplayModeBitsPerPixel(aBitmap->DisplayMode())/8;
-
-    TInt ret = iDecoder.DecodeImageData(aBitmap->DataAddress(), w, h, bpp); 
-
-    if (ret < 1)
-    {
-	StepCompleted(EError, (ret == 0) ? KErrNotFound : KErrNone);
-	return EFalse;
-    }
-
-    StepCompleted(EImageDecoded);
-    return ETrue;
-
-}
-
-
-void CQRCDecoderModel::SetBitmap(CFbsBitmap* aBitmap)
+void CDecoderModel::SetBitmap(CFbsBitmap* aBitmap)
 {
     if (iImageBitmap) delete iImageBitmap;   
     iImageBitmap = aBitmap;
 }
 	
-void CQRCDecoderModel::StartDecodeL(CFbsBitmap* aBitmap)
+void CDecoderModel::StartDecodeL(CFbsBitmap* aBitmap)
 {
     if (aBitmap) SetBitmap(aBitmap);
 
@@ -693,7 +709,8 @@ void CQRCDecoderModel::StartDecodeL(CFbsBitmap* aBitmap)
 	iImageHandler->SetBitmap(iImageBitmap);
     }
 
-    TRAPD(err, iImageHandler->ScaleL(iImageView->Size()));
+    // scale to fit the container size
+    TRAPD(err, iImageHandler->ScaleL( iViewContainer->Size() ));
     if (err != KErrNone)
     {
 	ShowErrorL(err);
@@ -714,7 +731,7 @@ void CQRCDecoderModel::StartDecodeL(CFbsBitmap* aBitmap)
 }
 
 
-void CQRCDecoderModel::StartDecodeL(const TFileName &aFileName)
+void CDecoderModel::StartDecodeL(const TFileName &aFileName)
 {
    
 
@@ -726,7 +743,7 @@ void CQRCDecoderModel::StartDecodeL(const TFileName &aFileName)
     }
 
     RFs& rfs = CCoeEnv::Static()->FsSession();
-    TRAPD(err, iImageHandler->LoadFileAndScaleL(rfs, aFileName, iImageView->Size()));
+    TRAPD(err, iImageHandler->LoadFileAndScaleL(rfs, aFileName, iViewContainer->Size() ));
     
     if (err != KErrNone)
     {
@@ -746,18 +763,15 @@ void CQRCDecoderModel::StartDecodeL(const TFileName &aFileName)
     }
 }
 
-void CQRCDecoderModel::DecodeFinishedL(const TDesC *aFileName)
+void CDecoderModel::DecodeFinishedL(const TDesC *aFileName)
 {
     if (iState == ECodeExtracted)
     {
 	ShowDataMenuL();
-	DisplayQRInfoL();
 	if (aFileName)
 	{
-	    CEikonEnv* env = CEikonEnv::Static();
-	
+	    CEikonEnv* env = CEikonEnv::Static();	
 	    CHistoryStore* hs = STATIC_CAST(CSquirrelAppUi*, env->EikAppUi())->HistoryStore(); 
-	
 	    if (hs) hs->AddItemL(*aFileName);
 	}
 
@@ -765,7 +779,6 @@ void CQRCDecoderModel::DecodeFinishedL(const TDesC *aFileName)
 
     else if (iState == EError)
     {
-	iInfoView->ClearL();
 	ShowError();
     }
 	
@@ -775,7 +788,7 @@ void CQRCDecoderModel::DecodeFinishedL(const TDesC *aFileName)
 
 
 
-void CQRCDecoderModel::ShowError()
+void CDecoderModel::ShowError()
 {
     TInt errCode = iStatus.Int(); 
     if (errCode == KErrNotFound)
@@ -797,10 +810,15 @@ void CQRCDecoderModel::ShowError()
 	    TPtrC errorPtr((TUint16*)error);
 	    ErrorNoteL(&errorPtr);
 	}
+	else {
+	    _LIT(KUnknownErr, "Unknown error!");
+	    ErrorNoteL(&KUnknownErr);
+	}
+
     }
 }
 
-void CQRCDecoderModel::SendPayloadL()
+void CDecoderModel::SendPayloadL()
 {
 
     RFs& rfs = CCoeEnv::Static()->FsSession();
@@ -808,7 +826,7 @@ void CQRCDecoderModel::SendPayloadL()
    
     TFileName fp(_L("D:\\Squirrel"));
  
-    switch (iQRC.payload_type)
+    switch (iDecoderResult.payload_type)
     {
 	case PL_BINARY:
 	    fp.Append(_L(".bin"));
@@ -832,7 +850,7 @@ void CQRCDecoderModel::SendPayloadL()
 
     // write data to temp file
    
-    TPtrC8 dataPtr((TUint8*) iQRC.data.payload, iQRC.data.payload_len);
+    TPtrC8 dataPtr((TUint8*) iDecoderResult.payload, iDecoderResult.payload_len);
  
     User::LeaveIfError(f.Replace(rfs, fp, EFileWrite/*|EFileShareAny*/));
     User::LeaveIfError(f.Write(dataPtr));
@@ -842,12 +860,12 @@ void CQRCDecoderModel::SendPayloadL()
 }
 
 
-void CQRCDecoderModel::ViewPayloadL(TDesC &aPayload)
+void CDecoderModel::ViewPayloadL(TDesC &aPayload)
 {
 
-    TPtrC8 payload8((TUint8*)iQRC.data.payload, iQRC.data.payload_len);
+    TPtrC8 payload8((TUint8*)iDecoderResult.payload, iDecoderResult.payload_len);
 
-    switch (iQRC.payload_type)
+    switch (iDecoderResult.payload_type)
     {
 	/*case PL_TEXT:
 	case PL_BINARY: // encoded as hex string
@@ -867,19 +885,28 @@ void CQRCDecoderModel::ViewPayloadL(TDesC &aPayload)
 }
 
 
-TBool CQRCDecoderModel::DataAvailable()
+TBool CDecoderModel::DataAvailable()
 {
     return iDataAvailable;
 }
 
-void CQRCDecoderModel::ShowDataMenuL(TBool aNewData)
+void CDecoderModel::ShowDataMenuL(TBool aNewData)
 {
 
     static TUint16* payload = NULL;  
     static TInt len = 0;
     if (aNewData)
     {
-	payload = (TUint16*) iDecoder.ParseAndEncodePayload(&iQRC, len, "UTF-16LE");
+	if (iDecoderResult.has_qrcode)
+	{
+	    payload = (TUint16*) iDecoder.ParseAndEncodePayload(&iDecoderResult, len, "UTF-16LE");
+	    
+	}
+	else
+	{
+	    payload = (TUint16*) iDecoder.EncodePayload(&iDecoderResult, len, "UTF-16LE");
+
+	}
     }
 
     if (!payload)
@@ -898,9 +925,19 @@ void CQRCDecoderModel::ShowDataMenuL(TBool aNewData)
     TPtrC payloadPtr(payload, len); 
  
     TInt item(0);
-    CAknListQueryDialog* d = new (ELeave)CAknListQueryDialog( &item );
 
-    if ( d->ExecuteLD(R_QRCDATA_MENU_DIALOG) )
+    CAknListQueryDialog* d = new (ELeave)CAknListQueryDialog( &item );
+    d->PrepareLC(R_QRCDATA_MENU_DIALOG);
+
+    if (iDecoderResult.payload_type == PL_BINARY)
+    {
+	HBufC* headerText = CCoeEnv::Static()->AllocReadResourceLC(R_DATA_MENU_TITLE2);
+	d->SetHeaderTextL(*headerText);
+	CleanupStack::PopAndDestroy(headerText);
+    }
+
+    if ( d->RunLD() )
+
     {
         switch ( item )
         {
@@ -924,23 +961,7 @@ void CQRCDecoderModel::ShowDataMenuL(TBool aNewData)
     }
 }
 
-void CQRCDecoderModel::DisplayQRInfoL()
-{
-    TBuf<64> infoBuf;
-
-    TInt qrcsize = iQRC.code.size;
-    infoBuf.AppendFormat(_L("Version: %d\n"), iQRC.data.version);
-    infoBuf.AppendFormat(_L("Size: %dx%d\n"), qrcsize, qrcsize);
-    infoBuf.AppendFormat(_L("ECI: %d"), iQRC.data.eci);
-    
-    iInfoView->ClearL();
-    iInfoView->WriteL(infoBuf);
-    //iViewContainer->UpdateControl(0);
-    iViewContainer->DrawNow();
-}
-
-
-void CQRCDecoderModel::StepCompleted(TState aState, TInt err)
+void CDecoderModel::StepCompleted(TState aState, TInt err)
 {
     iState = aState; 
     SetActive();
@@ -948,7 +969,7 @@ void CQRCDecoderModel::StepCompleted(TState aState, TInt err)
     User::RequestComplete(status, err);
 }
 
-void CQRCDecoderModel::RunL()
+void CDecoderModel::RunL()
 {
     // Handle cancel ??
 
@@ -957,12 +978,13 @@ void CQRCDecoderModel::RunL()
 	DecodeBitmap(iImageBitmap);
     }
 
-    else if (iState == EImageDecoded)
+    /*else if (iState == EImageDecoded)
     {
 	iState = EExtractingCode;
 
-	Mem::FillZ(&iQRC, sizeof(QRC));
-	if (!iDecoder.ExtractCode(0, &iQRC))
+	Mem::FillZ(&iDecoderResult, sizeof(DecoderResult));
+	
+	if (!iDecoder.ExtractCode(0, &iDecoderResult))
 	{
 
 	    iDataAvailable = EFalse;
@@ -974,21 +996,23 @@ void CQRCDecoderModel::RunL()
 	    StepCompleted(ECodeExtracted);
 	}
     }
+    */
 
     else if (iState == ECodeExtracted || iState == EError)
     {
+	DrawCodeRect();
 	if (iWaitDialog) iWaitDialog->ProcessFinishedL();
     }
 
 }
 
-void CQRCDecoderModel::DoCancel()
+void CDecoderModel::DoCancel()
 {
     if (iImageHandler) iImageHandler->Cancel();
     //StepCompleted(KErrCanceled);
 }
 
-void CQRCDecoderModel::ImageOperationCompleteL(TInt aError)
+void CDecoderModel::ImageOperationCompleteL(TInt aError)
 {
 
     if (aError != KErrNone)
@@ -999,23 +1023,22 @@ void CQRCDecoderModel::ImageOperationCompleteL(TInt aError)
     {
 
 	iImageView->SetBitmap(iImageHandler->ScaledBitmap());
-	iViewContainer->DrawNow();
 	StepCompleted(EImageLoaded);
     }
 }
 
-QRCScanHelper::QRCScanHelper()
+ScanHelper::ScanHelper()
 {
     iBuffer = NULL;
     iBufferSize = 0;
 }
 
-QRCScanHelper::~QRCScanHelper()
+ScanHelper::~ScanHelper()
 {
     if (iBuffer) delete iBuffer;
 }
 
-TInt QRCScanHelper::AllocateBuffer(const TInt aLen)
+TInt ScanHelper::AllocateBuffer(const TInt aLen)
 {
     if (iBuffer) delete iBuffer;
     iBuffer = new TUint8[aLen];
@@ -1023,28 +1046,7 @@ TInt QRCScanHelper::AllocateBuffer(const TInt aLen)
     return iBuffer ? KErrNone : KErrNoMemory;
 }
 
-
-
-void QRCScanHelper::DrawQRC(CFbsBitmap* aBitmap, QRC* aQRC)
-{
-    TInt lineWidth = 3;
-    iGc->SetPenColor(KRgbGreen);
-    iGc->SetPenSize(TSize(lineWidth, lineWidth));
-    
-    struct quirc_code code = aQRC->code;
-    for (TInt j = 0; j < 4; j++)
-    {
-	struct quirc_point *a = &code.corners[j];
-	struct quirc_point *b = &code.corners[(j + 1) % 4];
-
-	TPoint start((a->x)-lineWidth, (a->y)-lineWidth);
-	TPoint end((b->x)-lineWidth, (b->y)-lineWidth);
-	iGc->DrawLine(start, end);
-    }
-}
-
-
-TInt QRCScanHelper::FindCode(CFbsBitmap* aBitmap)
+TInt ScanHelper::FindCode(CFbsBitmap* aBitmap)
 {
 
     TSize size = aBitmap->SizeInPixels();
@@ -1058,30 +1060,27 @@ TInt QRCScanHelper::FindCode(CFbsBitmap* aBitmap)
     
     }
 
-    QRCScanHelper::BGRBitmapToGray(aBitmap, iBuffer);
+    ScanHelper::BGRBitmapToGray(aBitmap, iBuffer);
  
     TInt ret = iDecoder.DecodeImageData(iBuffer, len); 
 
-    if (ret > 0)
+    /*if (ret > 0)
     {
-	//iGc->SetPenColor(KRgbGreen);
-	//iGc->DrawText(_L("detected"), TPoint(0, 30));
-	QRC q;
-	ret = iDecoder.ExtractCode(0, &q);
-	if (iGc) DrawQRC(aBitmap, &q);
+	DecoderResult res;
+	ret = iDecoder.ExtractCode(0, &res);
     }
-
+    */
     return ret;
 }
 
 
-const TUint16* QRCScanHelper::GetError()
+const TUint16* ScanHelper::GetError()
 {
     return (const TUint16*) iDecoder.GetWError();
 }
 
 
-void QRCScanHelper::BGRBitmapToGray(CFbsBitmap* aBitmap, TUint8* &aBuffer)
+void ScanHelper::BGRBitmapToGray(CFbsBitmap* aBitmap, TUint8* &aBuffer)
 {
 
 

@@ -21,7 +21,9 @@ enum TSquirrelViewIds
     EHistoryView,
     EScannerView,
     EGeneratorView,
-    EAboutView
+    EAboutView,
+    EDummyView
+    
 };
 
 // Squirrel enumerate command codes

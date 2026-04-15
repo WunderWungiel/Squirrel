@@ -88,13 +88,13 @@ private:
 
 private:
 	// show filebrowser dialog
-	void SelectDriveRootL();
+	void SelectDriveRootL(TBool aCalledFromMenu=EFalse);
 	void SelectImageL(const TDesC& aPath);
 	// show previous view
 	void ActivatePrevViewL();
 
 public:
-	CQRCDecoderModel* iDecoderModel;
+	CDecoderModel* iDecoderModel;
 private:
 	TVwsViewId iPrevViewId;
 };

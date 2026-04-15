@@ -47,6 +47,7 @@ private:
     void OpenContactDatabaseL();
     //void ReadContactGroupsL();
     void ReadContactsL();
+    void DiscardPhotoFieldL(CBufFlat* aVCardBuf);
 
 public:
     TPtr8 GetVCardL(const TInt aIndex);

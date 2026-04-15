@@ -134,7 +134,7 @@ public: // New functions
 	 *
         * The scaled image is stored into iScaledBitmap.
         */
-        void ScaleL(const TSize &aSize);
+        void ScaleL(const TSize &aSize, TBool aMaintainAspectRatio=ETrue);
 
 	// Getter
 	CFbsBitmap* ScaledBitmap();

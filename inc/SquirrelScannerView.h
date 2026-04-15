@@ -18,18 +18,19 @@
 
 // CLASS DECLARATION
 
-class CQRCScanView : public CCoeControl, public MCameraObserver
+class CCamScanView : public CCoeControl, public MCameraObserver
 {
 
 public: 
         // Constructors
-        static CQRCScanView* NewL(const TRect& aRect , const CCoeControl* aParent=NULL);
-        static CQRCScanView* NewLC(const TRect& aRect, const CCoeControl* aParent=NULL);
-        virtual ~CQRCScanView();
+        static CCamScanView* NewL(const TRect& aRect , const CCoeControl* aParent=NULL);
+        static CCamScanView* NewLC(const TRect& aRect, const CCoeControl* aParent=NULL);
+        virtual ~CCamScanView();
     
 private: 
         // Functions from base classes
         void Draw(const TRect& aRect ) const;
+	//void HandleResourceChange(TInt aType);
         void SizeChanged();
 	//TKeyResponse OfferKeyEventL(const TKeyEvent& aKeyEvent,TEventCode aType);
 
@@ -38,6 +39,7 @@ public:
 	void CleanupCamera();
 	void StartViewFinder();
 	void StopViewFinder();
+	TInt GetError() {return iError;};
 
 private:
 
@@ -63,7 +65,7 @@ private: // From MCameraObserver
 private: 
         // Constructors
         void ConstructL(const TRect& aRect, const CCoeControl* aParent);
-        CQRCScanView();
+        CCamScanView();
 
 private: 
 	TInt iError;
@@ -74,7 +76,7 @@ private:
         CFbsBitmap* iBackBuffer;
         CFbsBitmapDevice* iBackBufferDevice;
         CFbsBitGc* iBackBufferContext;
-	QRCScanHelper iScanHelper;
+	ScanHelper iScanHelper;
 	TBool iFoundCode;
 	TBool iViewFinderActivated;
 };
@@ -144,8 +146,9 @@ private:
 	 */
 	CSquirrelScannerView();
 private:
-	CQRCScanView *iQRCScanView;
+	CCamScanView *iCamScanView;
 };
 
 #endif // __SQUIRRELSCANNERVIEW_h__
+
 // End of File

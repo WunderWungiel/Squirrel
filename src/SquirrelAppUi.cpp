@@ -24,6 +24,7 @@ Description : CSquirrelAppUi implementation
 #include "SquirrelScannerView.h"
 #include "SquirrelGeneratorView.h"
 #include "SquirrelAboutView.h"
+#include "SquirrelDummyView.h"
 #include "SquirrelAppUi.h"
 
 // ============================ MEMBER FUNCTIONS ===============================
@@ -57,6 +58,8 @@ void CSquirrelAppUi::ConstructL()
 
     iAboutView = CSquirrelAboutView::NewL();
     AddViewL(iAboutView);
+    iDummyView = CSquirrelDummyView::NewL();
+    AddViewL(iDummyView);
 
     SetDefaultViewL(*iMainView);
 }
@@ -131,19 +134,21 @@ void CSquirrelAppUi::HandleWsEventL(const TWsEvent& aEvent, CCoeControl* aDestin
 void CSquirrelAppUi::HandleResourceChangeL(TInt aType)
 {
     CAknAppUi::HandleResourceChangeL(aType);
-    /*if ( aType == KEikDynamicLayoutVariantSwitch)
+    if ( aType == KEikDynamicLayoutVariantSwitch)
     {
 	TVwsViewId viewId;
 	if ( GetActiveViewId(viewId) == KErrNone)
 	{
 	    View(viewId.iViewUid)->HandleViewRectChange();
+	    if ((viewId.iViewUid == TUid::Uid(EMainView)) || (viewId.iViewUid == TUid::Uid(EScannerView)) ){
+		ActivateLocalViewL(viewId.iViewUid);
+	    }
 	}
-    }*/
+    }
 }
   
 void CSquirrelAppUi::ActivateDecoderViewL(CFbsBitmap* aBitmap)
 {
-    _LIT8(KMsg, "");
     iDecoderView->iDecoderModel->SetBitmap(aBitmap);
     ActivateLocalViewL(TUid::Uid(EDecoderView), TUid::Uid(ECmdDecodeBitmap), KNullDesC8);
 }
