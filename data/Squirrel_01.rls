@@ -141,7 +141,7 @@ rls_string qtn_settings_title_string "Settings"
 rls_string qtn_contributor_about_string "About contributor:"
 
 // dialog message
-rls_string qtn_contributor1_info_string "Website: [http://avalibeyaz.com/symbuzzer]"
+rls_string qtn_contributor1_info_string "Website: [http://avalibeyaz.com/symbian]"
 
 rls_string qtn_loc_resource_file_1 "\\resource\\apps\\Squirrel"
 
