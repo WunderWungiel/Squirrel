@@ -22,6 +22,11 @@ P.I.P.S v1.7 for S60v3 and S60v5
 * Scan directly using camera.
 * View/Copy/Send payload.
 
+
+# Contributors
+* Icons by Mert Cakir
+* Turkish translation by symbuzzer
+
 # Libraries
 
 The following libraries were used to make this project. 
