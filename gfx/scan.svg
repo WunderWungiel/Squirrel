@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1 Tiny//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11-tiny.dtd">
+<svg baseProfile="tiny" width="96" height="96" fill="none" version="1.1" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+<g>
+<path d="m88 49c0 29.6-10.4 40-40 40-29.6 0-40-10.4-40-40 0-29.6 10.4-40 40-40 29.6 0 40 10.4 40 40z" fill="#000" fill-opacity=".4"/>
+<path d="m88 48c0 29.6-10.4 40-40 40-29.6 0-40-10.4-40-40 0-29.6 10.4-40 40-40 29.6 0 40 10.4 40 40z" fill="url(#b)"/>
+<path d="m48 8c-29.6 0-40 10.4-40 40 0 29.6 10.4 40 40 40 29.6 0 40-10.4 40-40 0-29.6-10.4-40-40-40zm0 79c-29.2 0-39-9.84-39-39s9.84-39 39-39 39 9.84 39 39-9.84 39-39 39z" fill="url(#a)" fill-opacity=".25"/>
+<g stroke="#000" stroke-width="2">
+<rect x="33.5" y="34.5" width="10" height="10" rx="2"/>
+<rect x="52.5" y="34.5" width="10" height="10" rx="2"/>
+<rect x="33.5" y="52.5" width="10" height="10" rx="2"/>
+</g>
+<g>
+<path d="m27.5 27h15c0.828 0 1.5 0.672 1.5 1.5s-0.672 1.5-1.5 1.5h-13.5v13.5c0 0.828-0.672 1.5-1.5 1.5s-1.5-0.672-1.5-1.5v-15c0-0.828 0.672-1.5 1.5-1.5z" fill="#C31111" fill-rule="evenodd"/>
+</g>
+<g stroke="#C31111" stroke-linecap="round" stroke-width="3">
+<path d="m27.5 69.5h15"/>
+<path d="m27.5 69.5v-15"/>
+</g>
+<g>
+<path d="m69 71h-15c-0.828 0-1.5-0.672-1.5-1.5s0.672-1.5 1.5-1.5h13.5v-13.5c0-0.828 0.672-1.5 1.5-1.5s1.5 0.672 1.5 1.5v15c0 0.828-0.672 1.5-1.5 1.5z" fill="#C31111" fill-rule="evenodd"/>
+</g>
+<g stroke="#C31111" stroke-linecap="round" stroke-width="3">
+<path d="m69 28.5h-15"/>
+<path d="m69 28.5v15"/>
+</g>
+<g stroke="#000" stroke-linecap="round" stroke-width="3">
+<path d="m48 35.5v12"/>
+<path d="m53.5 48.5v12"/>
+<path d="m62.5 53.5v4"/>
+<path d="m58.5 53.5v2"/>
+<path d="m43.5 48.5h-9"/>
+<path d="m62.5 48.5h-4"/>
+<path d="m62.5 61.5h-4"/>
+<path d="m48 61.5v-4"/>
+<path d="m48.5 52.5h-1"/>
+</g>
+</g>
+<defs>
+<linearGradient id="b" x1="48" x2="48" y1="8" y2="88" gradientUnits="userSpaceOnUse">
+<stop stop-color="#fff" offset="0"/>
+<stop stop-color="#CCCAC6" offset="1"/>
+</linearGradient>
+<linearGradient id="a" x1="48" x2="48" y1="8.25" y2="87.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#fff" offset="0"/>
+<stop stop-color="#fff" stop-opacity="0" offset="1"/>
+</linearGradient>
+</defs>
+</svg>

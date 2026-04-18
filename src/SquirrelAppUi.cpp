@@ -38,7 +38,7 @@ Description : CSquirrelAppUi implementation
 void CSquirrelAppUi::ConstructL()
 {
     // Initialise app UI with standard value.
-    BaseConstructL(CAknAppUi::EAknEnableSkin);
+    BaseConstructL(CAknAppUi::EAknEnableSkin/* | CAknAppUi::EAppUiOrientationPortrait*/);
     // Create view object
     iMainView = CSquirrelAppView::NewL();
     AddViewL(iMainView);

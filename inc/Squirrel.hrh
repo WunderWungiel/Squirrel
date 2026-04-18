@@ -17,10 +17,10 @@
 enum TSquirrelViewIds
 {
     EMainView = 1,
-    EDecoderView,
-    EHistoryView,
     EScannerView,
     EGeneratorView,
+    EDecoderView,
+    EHistoryView,
     EAboutView,
     EDummyView
     

@@ -2,15 +2,15 @@
 /* This file has been generated, DO NOT MODIFY. */
 enum TMifSquirrel
 	{
-	EMbmSquirrelDecode = 16384,
-	EMbmSquirrelDecode_mask = 16385,
+	EMbmSquirrelScan = 16384,
+	EMbmSquirrelScan_mask = 16385,
 	EMbmSquirrelGenerate = 16386,
 	EMbmSquirrelGenerate_mask = 16387,
-	EMbmSquirrelLoad = 16388,
-	EMbmSquirrelLoad_mask = 16389,
-	EMbmSquirrelAbout = 16390,
-	EMbmSquirrelAbout_mask = 16391,
-	EMbmSquirrelHistory = 16392,
-	EMbmSquirrelHistory_mask = 16393,
+	EMbmSquirrelDecode = 16388,
+	EMbmSquirrelDecode_mask = 16389,
+	EMbmSquirrelHistory = 16390,
+	EMbmSquirrelHistory_mask = 16391,
+	EMbmSquirrelAbout = 16392,
+	EMbmSquirrelAbout_mask = 16393,
 	EMbmSquirrelLastElement
 	};

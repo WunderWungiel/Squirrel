@@ -68,7 +68,7 @@ void CSquirrelAboutView::ConstructL()
 CSquirrelAboutView::CSquirrelAboutView()
 {
     iListbox = NULL;
-    iBrowserLauncher = NULL;
+    //iBrowserLauncher = NULL;
     iOSNoticeContent = NULL;
 
 }
@@ -87,7 +87,7 @@ CSquirrelAboutView::~CSquirrelAboutView()
 	delete iListbox;
     } 
     
-    if (iBrowserLauncher) delete iBrowserLauncher;
+    //if (iBrowserLauncher) delete iBrowserLauncher;
     if (iOSNoticeContent) delete iOSNoticeContent;
     iOSNoticeContent = NULL;
 	
@@ -153,11 +153,16 @@ void CSquirrelAboutView::HandleListBoxEventL(CEikListBox* aListBox , TListBoxEve
     {
 
 	TInt itemIndex = iListbox->Listbox()->CurrentItemIndex();
+	if (itemIndex == 4) ShowOSNoticeL();
+
+#if 0	
 	if (itemIndex == 3)
 	{
 	    
 	    HBufC* msg = iCoeEnv->AllocReadResourceLC(R_CONTRIBUTOR1_INFO);
 	    CAknMessageQueryDialog* dlg = new (ELeave) CAknMessageQueryDialog;
+	    dlg->PrepareLC(R_ABOUT_QUERY_DIALOG);
+
 	    TPtr msgPtr = msg->Des();
 	    TInt prefix = msgPtr.Find(_L("["));
 	    TInt suffix = msgPtr.Find(_L("]"));
@@ -175,21 +180,20 @@ void CSquirrelAboutView::HandleListBoxEventL(CEikListBox* aListBox , TListBoxEve
 	    }
 
 	    dlg->SetMessageTextL(*msg);
+	    dlg->RunLD();
 	    CleanupStack::PopAndDestroy(msg);
-	    dlg->ExecuteLD(R_ABOUT_QUERY_DIALOG);
-	
 	    //CAknQueryDialog* q = CAknQueryDialog::NewL();
             /*if (q->ExecuteLD(R_GENERAL_CONFIRMATION_QUERY))
 	    {
 	    }*/
 
 	}
-	else if (itemIndex == 4) ShowOSNoticeL();
+#endif
 
     }
 }
 
-void CSquirrelAboutView::OpenLinkL()
+/*void CSquirrelAboutView::OpenLinkL()
 {
     if (!iBrowserLauncher)
     {
@@ -198,14 +202,13 @@ void CSquirrelAboutView::OpenLinkL()
     iBrowserLauncher->LaunchBrowserEmbeddedL(iLinkBuf);
 }
 
-
 TInt CSquirrelAboutView::OpenLink(TAny* aArg)
 {
     TRAPD(err, STATIC_CAST(CSquirrelAboutView*,aArg)->OpenLinkL());
     if (err != KErrNone) ShowErrorL(err);
-    return 1;
+    return 0;
 }
-
+*/
 
 void CSquirrelAboutView::ShowOSNoticeL()
 {

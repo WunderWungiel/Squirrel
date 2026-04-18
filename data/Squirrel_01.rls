@@ -17,11 +17,17 @@ CHARACTER_SET UTF8
 rls_string qtn_caption_string "Squirrel"
 
 // Main view strings
-rls_string qtn_mainview_item1_string "0\tOpen"
-rls_string qtn_mainview_item2_string "1\tHistory"
-rls_string qtn_mainview_item3_string "2\tScan"
-rls_string qtn_mainview_item4_string "3\tGenerate"
+rls_string qtn_mainview_item1_string "0\tScan"
+rls_string qtn_mainview_item2_string "1\tGenerate"
+rls_string qtn_mainview_item3_string "2\tOpen"
+rls_string qtn_mainview_item4_string "3\tHistory"
 rls_string qtn_mainview_item5_string "4\tAbout"
+
+//rls_string qtn_mainview_item1_string "0\tOpen"
+//rls_string qtn_mainview_item2_string "1\tHistory"
+//rls_string qtn_mainview_item3_string "2\tScan"
+//rls_string qtn_mainview_item4_string "3\tGenerate"
+//rls_string qtn_mainview_item5_string "4\tAbout"
 
 // About view strings
 rls_string qtn_aboutview_item1_string "\tVersion\t1.0.0 (2026)"
@@ -139,6 +145,9 @@ rls_string qtn_settings_title_string "Settings"
 
 // dialog title
 rls_string qtn_contributor_about_string "About contributor:"
+
+// dialog title
+rls_string qtn_contributor_about_string "Katkıda bulunan hakkında:"
 
 // dialog message
 rls_string qtn_contributor1_info_string "Website: [http://avalibeyaz.com/symbian]"

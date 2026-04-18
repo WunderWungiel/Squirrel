@@ -202,14 +202,14 @@ void CMainViewGrid::SetupGridIconsL()
 {
     CArrayPtr<CGulIcon>* icons = new (ELeave) CAknIconArray(KNumberOfItems);
     iGrid->ItemDrawer()->FormattedCellData()->SetIconArray(icons);
-    TInt icon_ids[] = {
-	EMbmSquirrelLoad,
-	EMbmSquirrelHistory,	
-	EMbmSquirrelDecode,
-	EMbmSquirrelGenerate,
-	EMbmSquirrelAbout
-    };
 
+    TInt icon_ids[] = {
+	    EMbmSquirrelScan,
+	    EMbmSquirrelGenerate,	
+	    EMbmSquirrelDecode,
+	    EMbmSquirrelHistory,
+	    EMbmSquirrelAbout
+    };
     for (TInt i = 0; i < KNumberOfItems; i++)
     {
 	AddIconL(KMainViewIconsFile, icon_ids[i]);
@@ -339,14 +339,22 @@ void CSquirrelAppView::DoActivateL( const TVwsViewId& /*aPrevViewId*/,
 	CEikScrollBarFrame* frame = iListbox->Listbox()->ScrollBarFrame();
 	if (frame) TRAP_IGNORE(frame->SetScrollBarVisibilityL(CEikScrollBarFrame::EOff,CEikScrollBarFrame::EAuto));
 
-	TInt icon_ids[] = {
+	/*TInt icon_ids[] = {
 	    EMbmSquirrelLoad,
 	    EMbmSquirrelHistory,	
 	    EMbmSquirrelDecode,
 	    EMbmSquirrelGenerate,
 	    EMbmSquirrelAbout
+	};*/
+
+
+	TInt icon_ids[] = {
+	    EMbmSquirrelScan,
+	    EMbmSquirrelGenerate,	
+	    EMbmSquirrelDecode,
+	    EMbmSquirrelHistory,
+	    EMbmSquirrelAbout
 	};
-	
 	for (TInt i = 0; i < KNumberOfItems; i++)
 	{
 	    iListbox->AddIconL(iconArray, KMainViewIconsFile, icon_ids[i]);
@@ -390,10 +398,6 @@ void CSquirrelAppView::HandleListBoxEventL(CEikListBox* aListBox , TListBoxEvent
 	    AppUi()->ActivateLocalViewL(TUid::Uid(EDecoderView), TUid::Uid(ECmdOpenImage), KNullDesC8);
 
 	}
-	/*else if (viewIndex == EAboutView)
-	{
-	    AppUi()->SetOrientationL(CAknAppUiBase::EAppUiOrientationLandscape);
-	}*/
 
 	else AppUi()->ActivateLocalViewL(TUid::Uid(viewIndex));
 
